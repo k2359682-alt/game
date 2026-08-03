@@ -600,3 +600,229 @@ function generateOutcome() {
 
     return { finalSymbols: res };
 }
+// 1. ຟັງຊັນຄິດໄລ່ລາງວັນຈາກສັນຍາລັກທີ່ຢູ່ຕິດກັນ (ຮອງຮັບການໄດ້ຫຼາຍຄູ່ຕິດກັນ)
+function getConsecutiveReward(symbolArray) {
+    let totalReward = 0;
+    let matchStatsKey = null; // ເອົາໄວ້ບັນທຶກສະຖິຕິ
+    
+    let currentCount = 1;
+
+    for (let i = 0; i < symbolArray.length - 1; i++) {
+        if (symbolArray[i] === symbolArray[i + 1]) {
+            currentCount++;
+        } else {
+            if (currentCount >= 2) {
+                totalReward += calcRewardByCount(currentCount);
+                if (!matchStatsKey || currentCount > matchStatsKey) matchStatsKey = currentCount;
+            }
+            currentCount = 1; // ເລີ່ມນັບໃຫມ່
+        }
+    }
+    
+    // ກວດເບິ່ງຄູ່ສຸດທ້າຍ (ຖ້າຊ້ຳກັນຈົນຮອດໂຕສຸດທ້າຍ)
+    if (currentCount >= 2) {
+        totalReward += calcRewardByCount(currentCount);
+        if (!matchStatsKey || currentCount > matchStatsKey) matchStatsKey = currentCount;
+    }
+
+    return { reward: totalReward, maxMatch: matchStatsKey || 0 };
+}
+
+// ຟັງຊັນຕັ້ງເກນລາງວັນຕາມຈຳນວນໂຕຕິດກັນ
+function calcRewardByCount(count) {
+    if (count === 7) return 200;
+    if (count === 6) return 150;
+    if (count === 5) return 120;
+    if (count === 4) return 100;
+    if (count === 3) return 75;
+    if (count === 2) return 50;
+    return 0;
+}
+
+// 2. ປັບສຸ່ມໃຫ້ໂຕຊ້ຳກັນຢູ່ຕິດກັນແທ້ໆ
+function generateOutcome() {
+    const rand = Math.random() * 100;
+    const buff = isLuckActive ? 1.5 : 1.0;
+
+    let matchType = 0;
+    if (rand < 1.0 * buff) matchType = 7;
+    else if (rand < 4.0 * buff) matchType = 6;
+    else if (rand < 8.0 * buff) matchType = 5;
+    else if (rand < 13.0 * buff) matchType = 4;
+    else if (rand < 21.0 * buff) matchType = 3;
+    else if (rand < 31.0 * buff) matchType = 2;
+    else matchType = 0;
+
+    let res = Array.from({length: 7}, () => getRandomSymbol());
+
+    if (matchType > 0) {
+        const mainSym = getRandomSymbol();
+        const maxStartIndex = 7 - matchType;
+        const startIndex = Math.floor(Math.random() * (maxStartIndex + 1));
+
+        for (let i = 0; i < matchType; i++) {
+            res[startIndex + i] = mainSym;
+        }
+    }
+
+    return { finalSymbols: res };
+}
+
+// 3. ຟັງຊັນ spin() ທີ່ກວດລາງວັນຈາກໜ້າຈໍຈິງ
+async function spin(times) {
+    const cost = times === 1 ? 10 : 90;
+    if (gems < cost) return;
+
+    gems -= cost;
+    updateUI();
+    document.getElementById('spin1Btn').disabled = true;
+    document.getElementById('spin10Btn').disabled = true;
+
+    let totalReward = 0;
+    const spinDuration = times === 10 ? 400 : 1000;
+
+    for (let t = 0; t < times; t++) {
+        document.getElementById('result').innerText = `ກຳລັງໝຸນ... (${t + 1}/${times})`;
+        const outcome = generateOutcome();
+        
+        await animateSpin(outcome.finalSymbols, spinDuration);
+
+        stats.totalSpins++;
+
+        // 💡 ກວດນັບໂຕຕິດກັນຈາກໜ້າຈໍຈິງ
+        const resultData = getConsecutiveReward(outcome.finalSymbols);
+        const reward = resultData.reward;
+
+        // ອັບເດດສະຖິຕິ
+        if (resultData.maxMatch > 0) {
+            stats[`m${resultData.maxMatch}`]++;
+        }
+
+        if (reward > 0) {
+            totalReward += reward;
+            stats.wins++;
+        }
+    }
+
+    gems += totalReward;
+    
+    // ປົດລັອກປຸ່ມ
+    document.getElementById('spin1Btn').disabled = gems < 10;
+    document.getElementById('spin10Btn').disabled = gems < 90;
+    
+    updateUI();
+
+    if (totalReward > 0) {
+        document.getElementById('result').innerText = `${lang.winMsg}${totalReward} 💎`;
+    } else {
+        document.getElementById('result').innerText = lang.loseMsg;
+    }
+}
+        <!-- ເຂດສະແດງເວລານັບຖອຍຫຼັງລີເຊັດເດືອນ -->
+<div style="background: rgba(255, 215, 0, 0.1); border: 1px solid #ffd700; padding: 6px 12px; border-radius: 8px; margin-top: 8px; text-align: center; font-size: 13px; color: #ffd700;">
+    ⏳ ເວລາເຫຼືອກ່ອນລີເຊັດເພັດປະຈຳເດືອນ: <span id="resetTimer" style="font-weight: bold; color: #00ff66;">--d --h --m --s</span>
+</div>
+// ----------------------------------------------------
+// 1. ຕັ້ງຄ່າ Constants & ເກັບຮັກສາຂໍ້ມູນ Monthly Reset
+// ----------------------------------------------------
+const MAX_GEMS = 2500000; // ຈຳນວນເພັດສູງສຸດ
+let lastResetMonth = parseInt(localStorage.getItem('slot7_last_reset_month')) ?? -1;
+
+// ----------------------------------------------------
+// 2. ຟັງຊັນກວດສອບ ແລະ ລີເຊັດເພັດປະຈຳເດືອນ
+// ----------------------------------------------------
+function checkMonthlyReset() {
+    const now = new Date();
+    const currentMonth = now.getMonth(); // 0-11
+    const currentYear = now.getFullYear();
+    const monthKey = currentYear * 12 + currentMonth;
+
+    // ຖ້າເປັນເດືອນໃໝ່ (Month Key ປ່ຽນ)
+    if (lastResetMonth !== -1 && lastResetMonth !== monthKey) {
+        if (gems > 1000) {
+            gems = 1000; // ລີເຊັດເຫຼືອ 1,000 💎 ຖ້າເກີນ 1,000
+            alert("🔄 ເລີ່ມຕົ້ນເດືອນໃໝ່! ເພັດຂອງທ່ານຖືກປັບເຫຼືອ 1,000 💎");
+        } else {
+            // ຕໍ່າກວ່າ ຫຼື ເທົ່າກັບ 1,000 💎 ບໍ່ຖືກລີ
+            alert("ℹ️ ເລີ່ມຕົ້ນເດືອນໃໝ່! ເພັດຂອງທ່ານຕໍ່າກວ່າ 1,000 💎 ຈຶ່ງບໍ່ຖືກລີເຊັດ");
+        }
+    }
+
+    lastResetMonth = monthKey;
+    localStorage.setItem('slot7_last_reset_month', lastResetMonth);
+}
+
+// ----------------------------------------------------
+// 3. ນາฬິການັບຖອຍຫຼັງຈົນຮອດເດືອນໃໝ່ (Countdown)
+// ----------------------------------------------------
+function startResetCountdown() {
+    function updateTimer() {
+        const now = new Date();
+        // ວັນທີ 1 ຂອງເດືອນໜ້າ ເວລາ 00:00:00
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0);
+        const diff = nextMonth - now;
+
+        if (diff <= 0) {
+            checkMonthlyReset();
+            updateUI();
+            return;
+        }
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diff / (1000 * 60)) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+
+        const timerElement = document.getElementById('resetTimer');
+        if (timerElement) {
+            timerElement.innerText = `${days}ວັນ ${hours}ຊມ ${minutes}ນາທີ ${seconds}ວິ`;
+        }
+    }
+
+    updateTimer();
+    setInterval(updateTimer, 1000);
+}
+
+// ----------------------------------------------------
+// 4. ປັບ UI & ຈຳກັດເພັດສູງສຸດບໍ່ໃຫ້ເກີນ 2.5 ລ້ານ
+// ----------------------------------------------------
+function updateUI() {
+    // ຈຳກັດເພັດຕັດຢູ່ທີ່ 2,500,000
+    if (gems > MAX_GEMS) {
+        gems = MAX_GEMS;
+    }
+
+    document.getElementById('gemsCount').innerText = gems.toLocaleString(); // ສະແດງຕົວເລກມີ ຈຸດ (,)
+    document.getElementById('luckCount').innerText = luckItems;
+    document.getElementById('spin1Btn').disabled = gems < 10;
+    document.getElementById('spin10Btn').disabled = gems < 90;
+    document.getElementById('useLuckBtn').disabled = luckItems <= 0 || isLuckActive;
+
+    // Stats Dashboard
+    document.getElementById('statTotalSpins').innerText = stats.totalSpins;
+    const winRate = stats.totalSpins > 0 ? ((stats.wins / stats.totalSpins) * 100).toFixed(1) : 0;
+    document.getElementById('statWinRate').innerText = `${winRate}%`;
+
+    document.getElementById('m7').innerText = stats.m7;
+    document.getElementById('m6').innerText = stats.m6;
+    document.getElementById('m5').innerText = stats.m5;
+    document.getElementById('m4').innerText = stats.m4;
+    document.getElementById('m3').innerText = stats.m3;
+    document.getElementById('m2').innerText = stats.m2;
+
+    calculateGlobalRank();
+    saveGameData();
+}
+
+// ----------------------------------------------------
+// 5. ເອີ້ນໃຊ້ງານຕອນໂຫຼດເກມ (window onLoad)
+// ----------------------------------------------------
+window.addEventListener('load', () => {
+    checkMonthlyReset();      // ກວດສອບການລີເຊັດເດືອນ
+    startResetCountdown();   // ເລີ່ມນັບຖອຍຫຼັງ
+    applyLanguage();
+    loadProfileData();
+    updateUI();
+    
+    // ... (Loading Screen Animation ຄືເກົ່າ) ...
+});
