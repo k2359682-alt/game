@@ -826,3 +826,86 @@ window.addEventListener('load', () => {
     
     // ... (Loading Screen Animation ຄືເກົ່າ) ...
 });
+// 1. ແກ້ໄຂ animateSpin ໃຫ້ສະແດງຜົນກົງກັບ finalSymbols ເປະໆ
+function animateSpin(finalSymbols, duration) {
+    return new Promise(resolve => {
+        const symbolHeight = 65;
+        
+        reelElements.forEach((reel, index) => {
+            let strip = '';
+            const spinsCount = 10; // ຈຳນວນຮອບໝຸນ
+            
+            // ສຸ່ມສັນຍາລັກຫຼອກໆທາງເທິງ
+            for (let i = 0; i < spinsCount; i++) {
+                strip += `<div class="symbol">${getRandomSymbol()}</div>`;
+            }
+            
+            // 💡 ຕົວສຸດທ້າຍ (ໂຕທີ່ຈະມາຕົກຢູ່ຈຸດເລືອກ) ຕ້ອງແມ່ນ finalSymbols[index] ເທົ່ານັ້ນ!
+            strip += `<div class="symbol">${finalSymbols[index]}</div>`;
+            
+            reel.innerHTML = strip;
+            reel.style.transition = 'none';
+            reel.style.top = '0px';
+
+            setTimeout(() => {
+                reel.style.transition = `top ${duration / 1000}s cubic-bezier(0.1, 0.9, 0.2, 1)`;
+                reel.style.top = `-${spinsCount * symbolHeight}px`;
+            }, 20);
+        });
+
+        setTimeout(resolve, duration + 150);
+    });
+}
+
+// 2. ຟັງຊັນ spin() ທີ່ກວດລາງວັນຈາກ finalSymbols ໂດຍກົງ
+async function spin(times) {
+    const cost = times === 1 ? 10 : 90;
+    if (gems < cost) return;
+
+    gems -= cost;
+    updateUI();
+    document.getElementById('spin1Btn').disabled = true;
+    document.getElementById('spin10Btn').disabled = true;
+
+    let totalReward = 0;
+    const spinDuration = times === 10 ? 400 : 1000;
+
+    for (let t = 0; t < times; t++) {
+        document.getElementById('result').innerText = `ກຳລັງໝຸນ... (${t + 1}/${times})`;
+        
+        // 1. ສຸ່ມຜົນອອກມາອ່ານຄ່າກ່ອນ
+        const outcome = generateOutcome();
+        
+        // 2. ແລ່ນ Animation ໂດຍສົ່ງ finalSymbols ເຂົ້າໄປສະແດງ
+        await animateSpin(outcome.finalSymbols, spinDuration);
+
+        stats.totalSpins++;
+
+        // 3. ກວດລາງວັນຈາກ finalSymbols ທີ່ປາກົດເທິງໜ້າຈໍ
+        const resultData = getConsecutiveReward(outcome.finalSymbols);
+        const reward = resultData.reward;
+
+        if (resultData.maxMatch > 0) {
+            stats[`m${resultData.maxMatch}`]++;
+        }
+
+        if (reward > 0) {
+            totalReward += reward;
+            stats.wins++;
+        }
+    }
+
+    gems += totalReward;
+    
+    // ປົດລັອກປຸ່ມ
+    document.getElementById('spin1Btn').disabled = gems < 10;
+    document.getElementById('spin10Btn').disabled = gems < 90;
+    
+    updateUI();
+
+    if (totalReward > 0) {
+        document.getElementById('result').innerText = `${lang.winMsg}${totalReward} 💎`;
+    } else {
+        document.getElementById('result').innerText = lang.loseMsg;
+    }
+}
