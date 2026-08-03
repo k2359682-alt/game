@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5-Reel Slot Game with Loading Screen</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* Loading Screen Style */
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0d0d1a;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease, visibility 0.8s;
+        }
+
+        .loading-icon {
+            font-size: 80px;
+            animation: bounceSpin 1.2s infinite ease-in-out;
+            margin-bottom: 20px;
+        }
+
+        @keyframes bounceSpin {
+            0% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.2) rotate(180deg); }
+            100% { transform: scale(1) rotate(360deg); }
+        }
+
+        .loading-title {
+            color: #ffd700;
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .progress-container {
+            width: 280px;
+            height: 20px;
+            background-color: #222;
+            border-radius: 10px;
+            border: 2px solid #ffd700;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            position: relative;
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #00e5ff, #00ff66);
+            border-radius: 8px;
+            transition: width 0.1s ease;
+        }
+
+        .loading-text {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #00e5ff;
+            font-weight: bold;
+        }
+
+        /* Top Bar & Auth */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 520px;
+            background: #222;
+            padding: 10px 15px;
+            border-radius: 10px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        .stats-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00e5ff;
+            display: flex;
+            gap: 12px;
+        }
+
+        .auth-btns button {
+            padding: 6px 10px;
+            margin-left: 4px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-google { background: #4285F4; color: white; }
+        .btn-fb { background: #1877F2; color: white; }
+
+        /* Game Container */
+        .slot-container {
+            display: flex;
+            gap: 8px;
+            background: #282828;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+            border: 3px solid #ffd700;
+            margin-top: 5px;
+        }
+
+        .reel-window {
+            width: 60px;
+            height: 70px;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .reel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: absolute;
+            width: 100%;
+            top: 0;
+            transition: top 1.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+        }
+
+        .symbol {
+            width: 100%;
+            height: 70px;
+            font-size: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Controls & Buff */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .spin-btn {
+            padding: 12px 18px;
+            font-size: 15px;
+            font-weight: bold;
+            background: #e50914; /* Red color */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(229, 9, 20, 0.4);
+        }
+
+        .spin-btn:disabled {
+            background: #555 !important;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .buff-status {
+            margin-top: 8px;
+            font-weight: bold;
+            color: #00ff66;
+            height: 20px;
+        }
+
+        /* Code Redemption & Shop Section */
+        .card-section {
+            background: #1e1e1e;
+            padding: 12px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 520px;
+            margin-top: 12px;
+            box-sizing: border-box;
+            border: 1px solid #333;
+        }
+
+        .code-input-box {
+            display: flex;
+            gap: 8px;
+        }
+
+        .code-input-box input {
+            flex: 1;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            background: #111;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .code-input-box button {
+            padding: 8px 15px;
+            background: #9c27b0;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Extra Buttons (Free Rewards / Ads / Shop) */
+        .extra-section {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .reward-btn {
+            padding: 8px 12px;
+            background: #2e7d32;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .reward-btn:disabled { background: #555; cursor: not-allowed; }
+
+        #result {
+            margin-top: 10px;
+            font-size: 17px;
+            font-weight: bold;
+            height: 25px;
+            color: #00ffcc;
+            text-align: center;
+        }
+
+        /* Ads Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 99;
+        }
+
+        .ad-box {
+            background: #fff;
+            color: #000;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            width: 310px;
+            position: relative;
+        }
+
+        .ad-code-popup {
+            background: #ffeb3b;
+            color: #000;
+            padding: 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 10px;
+            border: 2px dashed #f57c00;
+        }
+
+        /* Admin Modal */
+        .admin-box {
+            background: #222;
+            color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #00e5ff;
+            width: 280px;
+            text-align: center;
+        }
+        .admin-box button {
+            margin-top: 10px;
+            width: 100%;
+            padding: 8px;
+            background: #00e5ff;
+            color: #000;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Screen -->
+    <div id="loadingScreen">
+        <div class="loading-icon">🎰</div>
+        <div class="loading-title">ກຳລັງໂຫຼດເກມ... (Loading Game...)</div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="loading-text" id="loadingText">0%</div>
+    </div>
+
+    <!-- Header / Gems / Luck Item / Login -->
+    <div class="header">
+        <div class="stats-display">
+            <span>💎 <span id="gemsCount">100</span></span>
+            <span>🍀 <span id="luckCount">0</span></span>
+        </div>
+        <div class="auth-btns" id="authBox">
+            <button class="btn-google" onclick="login('Google')">Google</button>
+            <button class="btn-fb" onclick="login('Facebook')">Facebook</button>
+        </div>
+    </div>
+
+    <h1 style="margin: 5px 0; font-size: 24px; color: #ffd700;">🎰 ເກມວົງລໍ 5 ວົງ 🎰</h1>
+
+    <!-- Slot Machine -->
+    <div class="slot-container">
+        <div class="reel-window"><div class="reel" id="reel0"></div></div>
+        <div class="reel-window"><div class="reel" id="reel1"></div></div>
+        <div class="reel-window"><div class="reel" id="reel2"></div></div>
+        <div class="reel-window"><div class="reel" id="reel3"></div></div>
+        <div class="reel-window"><div class="reel" id="reel4"></div></div>
+    </div>
+
+    <!-- Buff Status -->
+    <div class="buff-status" id="buffStatus"></div>
+
+    <!-- Spin & Buff Buttons -->
+    <div class="controls">
+        <button class="spin-btn" id="spin1Btn" onclick="spin(1)">ໝຸນ 1 ຄັ້ງ (10 💎)</button>
+        <button class="spin-btn" id="spin10Btn" onclick="spin(10)">ໝຸນ 10 ຄັ້ງ (90 💎)</button>
+        <button class="spin-btn" style="background: #2e7d32;" id="useLuckBtn" onclick="useLuckBuff()">ໃຊ້ໄອເທັມໂຊກດີ 🍀</button>
+    </div>
+
+    <div id="result"></div>
+
+    <!-- Free Gems & Ads & Shop -->
+    <div class="extra-section">
+        <button class="reward-btn" id="dailyBtn" onclick="claimDaily()">🎁 ຮັບ 30 💎 (24h)</button>
+        <button class="reward-btn" style="background: #ff8f00;" onclick="watchAd('gems')">📺 ເບິ່ງໂຄສະນາ (20 💎 / 20s)</button>
+        <button class="reward-btn" style="background: #0288d1;" onclick="watchAd('luck')">📺 ເບິ່ງໂຄສະນາ (1 🍀 / 30s)</button>
+        <button class="reward-btn" style="background: #e91e63;" onclick="buyLuckItem()">🛒 ຊື້ 1 🍀 (50 💎)</button>
+    </div>
+
+    <!-- Code Input Section -->
+    <div class="card-section">
+        <div style="font-weight: bold; margin-bottom: 6px; font-size: 14px;">🔑 ໃສ່ໂຄດລະຫັດ (Redeem Code):</div>
+        <div class="code-input-box">
+            <input type="text" id="codeInput" placeholder="ພິມໂຄດລະຫັດຢູ່ບ່ອນນີ້...">
+            <button onclick="redeemCode()">Redeem</button>
+        </div>
+    </div>
+
+    <!-- Ads Modal Window -->
+    <div class="modal" id="adModal">
+        <div class="ad-box">
+            <h2 id="adTitle" style="margin-top:0;">✨ Gemini AI</h2>
+            <p id="adDesc">ຜູ້ຊ່ວຍ ອັດສະລິຍະ ຈາກ Google ເຄື່ອງມືສ້າງສັນໄອເດຍ ແລະ ຂຽນໂຄດ!</p>
+            <div id="adCodeContainer"></div>
+            <h3 style="color: red; margin-bottom: 0;">ກຳລັງເບິ່ງໂຄສະນາ: <span id="adTimer">20</span>s</h3>
+        </div>
+    </div>
+
+    <!-- Admin Modal Window -->
+    <div class="modal" id="adminModal">
+        <div class="admin-box">
+            <h3>👑 ADMIN PANEL (kongkham)</h3>
+            <p>ລະບົບຈັດການພິເສດສຳລັບ Admin</p>
+            <button onclick="adminAddGems()">+10,000 เพชร (Unlimited 💎)</button>
+            <button onclick="adminAddLuck()">+10 ไอน์เท็มโชคดี (🍀)</button>
+            <button onclick="closeAdmin()" style="background: #ff5252; color: white;">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <script>
+        // Loading Screen Script
+        window.addEventListener('load', () => {
+            let progress = 0;
+            const progressBar = document.getElementById('progressBar');
+            const loadingText = document.getElementById('loadingText');
+            const loadingScreen = document.getElementById('loadingScreen');
+
+            const loadingInterval = setInterval(() => {
+                progress += Math.floor(Math.random() * 8) + 3; // Random speed increment
+                if (progress > 100) progress = 100;
+
+                progressBar.style.width = `${progress}%`;
+                loadingText.innerText = `${progress}%`;
+
+                if (progress >= 100) {
+                    clearInterval(loadingInterval);
+                    setTimeout(() => {
+                        loadingScreen.style.opacity = '0';
+                        loadingScreen.style.visibility = 'hidden';
+                    }, 400);
+                }
+            }, 80);
+        });
+
+        let gems = 100;
+        let luckItems = 0;
+        let isLuckActive = false;
+        let luckTimer = null;
+        let luckTimeLeft = 0;
+
+        const usedCodes = new Set();
+
+        // Valid Codes List
+        const gemCodes = ["zzzzdffgh", "kfhhedbjkj", "ngjjdheyi", "opurgdgc54t", "fgde4wcd", "fgrdsfsssww", "yutdurebfhrhd", "ngnkukyjdfhd", "ddhfhrysfkilkhmfs"];
+        const luckCodes = ["bfhdhdshdsd", "ttrsgdgdg", "jkfioekfemfel", "rrgrgelofmgokge", "pwoweowegwkmg", "oekoffkgmgkwg"];
+
+        const symbols = ['😲', '⌚', '🦦', '🤑', '♟️', '🍕'];
+        const reelElements = [0,1,2,3,4].map(i => document.getElementById(`reel${i}`));
+        
+        const gemsDisplay = document.getElementById('gemsCount');
+        const luckDisplay = document.getElementById('luckCount');
+        const spin1Btn = document.getElementById('spin1Btn');
+        const spin10Btn = document.getElementById('spin10Btn');
+        const useLuckBtn = document.getElementById('useLuckBtn');
+        const resultEl = document.getElementById('result');
+        const buffStatusEl = document.getElementById('buffStatus');
+        const dailyBtn = document.getElementById('dailyBtn');
+
+        const adsList = [
+            { title: "✨ Gemini AI", desc: "ຜູ້ຊ່ວຍອັດສະລິຍະຈາກ Google ຊ່ວຍທ່ານຂຽນໂຄດ ແລະ ຄິດໄອເດຍໃໝ່ໆ!" },
+            { title: "☁️ Google Cloud", desc: "ລະບົບຄລາວທີ່ປອດໄພ ແລະ ໄວທີ່ສຸດສຳລັບນັກພັດທະນາ!" },
+            { title: "▶️ YouTube Premium", desc: "ເບິ່ງວິດີໂອບໍ່ມີໂຄສະນາຄັ່ນ ພ້ອມຟັງເພງແບບ Offline!" }
+        ];
+
+        reelElements.forEach(r => r.innerHTML = `<div class="symbol">${symbols[0]}</div>`);
+        updateUI();
+
+        function updateUI() {
+            gemsDisplay.innerText = gems;
+            luckDisplay.innerText = luckItems;
+            spin1Btn.disabled = gems < 10;
+            spin10Btn.disabled = gems < 90;
+            useLuckBtn.disabled = luckItems <= 0 || isLuckActive;
+        }
+
+        function login(provider) {
+            document.getElementById('authBox').innerHTML = `<span style="color:#00ffcc; font-weight:bold;">✔ ${provider}</span>`;
+            alert(`ລັອກອິນດ້ວຍ ${provider} ສຳເລັດ!`);
+        }
+
+        function getRandomSymbol() {
+            return symbols[Math.floor(Math.random() * symbols.length)];
+        }
+
+        function generateOutcome() {
+            const mult = isLuckActive ? 1.5 : 1.0;
+            const rand = Math.random() * 100;
+
+            const p5 = 1 * mult;        // Default 1%
+            const p4 = 3 * mult;        // Default 3%
+            const p3 = 8 * mult;        // Default 8%
+            const p2 = 15 * mult;       // Default 15%
+
+            let matchType = 0;
+
+            if (rand < p5) matchType = 5;
+            else if (rand < p5 + p4) matchType = 4;
+            else if (rand < p5 + p4 + p3) matchType = 3;
+            else if (rand < p5 + p4 + p3 + p2) matchType = 2;
+            else matchType = 0;
+
+            let res = [];
+            const mainSym = getRandomSymbol();
+
+            if (matchType === 5) {
+                res = Array(5).fill(mainSym);
+            } else if (matchType === 4) {
+                let other = getRandomSymbol();
+                while(other === mainSym) other = getRandomSymbol();
+                res = Math.random() < 0.5 ? [other, mainSym, mainSym, mainSym, mainSym] : [mainSym, mainSym, mainSym, mainSym, other];
+            } else if (matchType === 3) {
+                let other = getRandomSymbol();
+                while(other === mainSym) other = getRandomSymbol();
+                const pos = Math.floor(Math.random() * 3);
+                res = Array(5).fill(other);
+                res[pos] = mainSym; res[pos+1] = mainSym; res[pos+2] = mainSym;
+            } else if (matchType === 2) {
+                res = Array.from({length: 5}, () => getRandomSymbol());
+                const pos = Math.floor(Math.random() * 4);
+                res[pos] = mainSym; res[pos+1] = mainSym;
+            } else {
+                res = Array.from({length: 5}, () => getRandomSymbol());
+            }
+
+            return { finalSymbols: res, matchType: matchType };
+        }
+
+        async function spin(times) {
+            const cost = times === 1 ? 10 : 90;
+            if (gems < cost) return;
+
+            gems -= cost;
+            updateUI();
+            spin1Btn.disabled = true;
+            spin10Btn.disabled = true;
+
+            let totalReward = 0;
+
+            for (let t = 0; t < times; t++) {
+                resultEl.innerText = `ກຳລັງໝຸນ... (${t + 1}/${times})`;
+                const outcome = generateOutcome();
+                
+                await animateSpin(outcome.finalSymbols);
+
+                if (outcome.matchType === 5) totalReward += 300;
+                else if (outcome.matchType === 4) totalReward += 250;
+                else if (outcome.matchType === 3) totalReward += 100;
+                else if (outcome.matchType === 2) totalReward += 50;
+            }
+
+            gems += totalReward;
+            updateUI();
+
+            if (totalReward > 0) {
+                resultEl.innerText = `🎉 ຍິນດີດ້ວຍ! ທ່ານໄດ້ຮັບ +${totalReward} 💎`;
+            } else {
+                resultEl.innerText = `❌ ເສຍໃຈດ້ວຍ, ບໍ່ຖືກລາງວັນ!`;
+            }
+        }
+
+        function animateSpin(finalSymbols) {
+            return new Promise(resolve => {
+                const symbolHeight = 70;
+                reelElements.forEach((reel, index) => {
+                    let strip = '';
+                    const spinsCount = 12;
+                    const isDown = index % 2 === 0;
+
+                    for (let i = 0; i < spinsCount; i++) strip += `<div class="symbol">${getRandomSymbol()}</div>`;
+                    
+                    if (isDown) {
+                        strip += `<div class="symbol">${finalSymbols[index]}</div>`;
+                        reel.innerHTML = strip;
+                        reel.style.transition = 'none';
+                        reel.style.top = '0px';
+                        setTimeout(() => {
+                            reel.style.transition = 'top 1.2s cubic-bezier(0.1, 0.9, 0.2, 1)';
+                            reel.style.top = `-${spinsCount * symbolHeight}px`;
+                        }, 30);
+                    } else {
+                        strip = `<div class="symbol">${finalSymbols[index]}</div>` + strip;
+                        reel.innerHTML = strip;
+                        reel.style.transition = 'none';
+                        reel.style.top = `-${spinsCount * symbolHeight}px`;
+                        setTimeout(() => {
+                            reel.style.transition = 'top 1.2s cubic-bezier(0.1, 0.9, 0.2, 1)';
+                            reel.style.top = '0px';
+                        }, 30);
+                    }
+                });
+
+                setTimeout(resolve, 1300);
+            });
+        }
+
+        function useLuckBuff() {
+            if (luckItems <= 0 || isLuckActive) return;
+
+            luckItems--;
+            isLuckActive = true;
+            luckTimeLeft = 25;
+            updateUI();
+
+            buffStatusEl.innerText = `🔥 ຄວາມໂຊກດີ x1.5 ກຳລັງເຮັດວຽກ: ${luckTimeLeft}s`;
+
+            luckTimer = setInterval(() => {
+                luckTimeLeft--;
+                if (luckTimeLeft > 0) {
+                    buffStatusEl.innerText = `🔥 ຄວາມໂຊກດີ x1.5 ກຳລັງເຮັດວຽກ: ${luckTimeLeft}s`;
+                } else {
+                    clearInterval(luckTimer);
+                    isLuckActive = false;
+                    buffStatusEl.innerText = '';
+                    updateUI();
+                    alert('⏳ ໝົດເວລາຄວາມໂຊກດີ x1.5 ແລ້ວ!');
+                }
+            }, 1000);
+        }
+
+        function buyLuckItem() {
+            if (gems < 50) {
+                alert('❌ ເພັດບໍ່ພໍ! ຕ້ອງໃຊ້ 50 💎');
+                return;
+            }
+            gems -= 50;
+            luckItems++;
+            updateUI();
+            alert('🛒 ຊື້ໄອເທັມໂຊກດີ +1 🍀 ສຳເລັດ!');
+        }
+
+        function redeemCode() {
+            const input = document.getElementById('codeInput');
+            const code = input.value.trim();
+
+            if (!code) return;
+
+            if (code === "kongkham") {
+                document.getElementById('adminModal').style.display = 'flex';
+                input.value = '';
+                return;
+            }
+
+            if (usedCodes.has(code)) {
+                alert('❌ ໂຄດນີ້ຖືກໃຊ້ໄປແລ້ວ!');
+                return;
+            }
+
+            if (gemCodes.includes(code)) {
+                gems += 20;
+                usedCodes.add(code);
+                updateUI();
+                alert('🎉 ໃສ່ໂຄດສຳເລັດ! ທ່ານໄດ້ຮັບ +20 💎');
+            } else if (luckCodes.includes(code)) {
+                luckItems += 1;
+                usedCodes.add(code);
+                updateUI();
+                alert('🎉 ໃສ່ໂຄດສຳເລັດ! ທ່ານໄດ້ຮັບໄອເທັມໂຊກດີ +1 🍀');
+            } else {
+                alert('❌ ໂຄດບໍ່ຖືກຕ້ອງ!');
+            }
+
+            input.value = '';
+        }
+
+        function adminAddGems() {
+            gems += 10000;
+            updateUI();
+            alert('👑 [ADMIN] ເພີ່ມ +10,000 💎 ສຳເລັດ!');
+        }
+
+        function adminAddLuck() {
+            luckItems += 10;
+            updateUI();
+            alert('👑 [ADMIN] ເພີ່ມ +10 🍀 ສຳເລັດ!');
+        }
+
+        function closeAdmin() {
+            document.getElementById('adminModal').style.display = 'none';
+        }
+
+        function watchAd(type) {
+            const adModal = document.getElementById('adModal');
+            const codeContainer = document.getElementById('adCodeContainer');
+            const randomAd = adsList[Math.floor(Math.random() * adsList.length)];
+            
+            document.getElementById('adTitle').innerText = randomAd.title;
+            document.getElementById('adDesc').innerText = randomAd.desc;
+            codeContainer.innerHTML = '';
+            
+            adModal.style.display = 'flex';
+            let adTime = type === 'gems' ? 20 : 30;
+            document.getElementById('adTimer').innerText = adTime;
+
+            const allCodes = [...gemCodes, ...luckCodes];
+            const sampleCode = allCodes[Math.floor(Math.random() * allCodes.length)];
+
+            const adInterval = setInterval(() => {
+                adTime--;
+                document.getElementById('adTimer').innerText = adTime;
+
+                if (adTime <= 13 && adTime >= 8) {
+                    codeContainer.innerHTML = `<div class="ad-code-popup">🔑 ໂຄດພິເສດ: <u>${sampleCode}</u></div>`;
+                } else {
+                    codeContainer.innerHTML = '';
+                }
+
+                if (adTime <= 0) {
+                    clearInterval(adInterval);
+                    adModal.style.display = 'none';
+                    if (type === 'gems') {
+                        gems += 20;
+                        alert('📺 ເບິ່ງໂຄສະນາສຳເລັດ! ທ່ານໄດ້ຮັບ +20 💎');
+                    } else {
+                        luckItems += 1;
+                        alert('📺 ເບິ່ງໂຄສະນາສຳເລັດ! ທ່ານໄດ້ຮັບ +1 🍀');
+                    }
+                    updateUI();
+                }
+            }, 1000);
+        }
+
+        function claimDaily() {
+            gems += 30;
+            updateUI();
+            dailyBtn.disabled = true;
+            
+            let timeLeft = 24 * 60 * 60;
+            const timer = setInterval(() => {
+                timeLeft--;
+                const h = Math.floor(timeLeft / 3600);
+                const m = Math.floor((timeLeft % 3600) / 60);
+                const s = timeLeft % 60;
+                dailyBtn.innerText = `⏳ ຖໍ້າອີກ (${h}h ${m}m ${s}s)`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    dailyBtn.disabled = false;
+                    dailyBtn.innerText = '🎁 ຮັບ 30 💎 (24h)';
+                }
+            }, 1000);
+
+            alert('🎉 ທ່ານໄດ້ຮັບເພັດຟຣີ +30 💎!');
+        }
+    </script>
+</body>
+</html>
