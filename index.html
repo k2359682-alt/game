@@ -572,3 +572,31 @@
     </script>
 </body>
 </html>
+function generateOutcome() {
+    const rand = Math.random() * 100;
+    const buff = isLuckActive ? 1.5 : 1.0;
+
+    let matchType = 0;
+    if (rand < 1.0 * buff) matchType = 7;
+    else if (rand < 4.0 * buff) matchType = 6;
+    else if (rand < 8.0 * buff) matchType = 5;
+    else if (rand < 13.0 * buff) matchType = 4;
+    else if (rand < 21.0 * buff) matchType = 3;
+    else if (rand < 31.0 * buff) matchType = 2;
+    else matchType = 0;
+
+    let res = Array.from({length: 7}, () => getRandomSymbol());
+
+    if (matchType > 0) {
+        const mainSym = getRandomSymbol();
+        // ສຸ່ມຕຳແໜ່ງເລີ່ມຕົ້ນ ໃຫ້ຕົວຊ້ຳກັນຢູ່ຕິດກັນ
+        const maxStartIndex = 7 - matchType;
+        const startIndex = Math.floor(Math.random() * (maxStartIndex + 1));
+
+        for (let i = 0; i < matchType; i++) {
+            res[startIndex + i] = mainSym;
+        }
+    }
+
+    return { finalSymbols: res };
+}
