@@ -909,3 +909,650 @@ async function spin(times) {
         document.getElementById('result').innerText = lang.loseMsg;
     }
 }
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7-Reel Global Slot Machine</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0f0f1a;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* Loading Screen */
+        #loadingScreen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #070711;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            z-index: 9999; transition: opacity 0.8s ease, visibility 0.8s;
+        }
+        .loading-icon { font-size: 80px; animation: bounceSpin 1.2s infinite ease-in-out; margin-bottom: 20px; }
+        @keyframes bounceSpin {
+            0% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.2) rotate(180deg); }
+            100% { transform: scale(1) rotate(360deg); }
+        }
+        .progress-container { width: 280px; height: 20px; background-color: #222; border-radius: 10px; border: 2px solid #ffd700; overflow: hidden; }
+        .progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #00e5ff, #00ff66); transition: width 0.1s ease; }
+
+        /* Header */
+        .header {
+            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+            width: 100%; max-width: 650px; background: #1e1e2e; padding: 12px 18px; border-radius: 12px;
+            box-sizing: border-box; margin-bottom: 10px; border: 1px solid #333;
+        }
+        .user-profile { display: flex; align-items: center; gap: 10px; }
+        .avatar-box {
+            width: 45px; height: 45px; border-radius: 50%; border: 2px solid #ffd700;
+            overflow: hidden; background: #333; display: flex; justify-content: center; align-items: center;
+            cursor: pointer; position: relative;
+        }
+        .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
+        .user-info { display: flex; flex-direction: column; }
+        .username { font-weight: bold; font-size: 15px; color: #ffd700; cursor: pointer; }
+        .user-rank { font-size: 12px; color: #00e5ff; }
+
+        .stats-display { font-size: 16px; font-weight: bold; color: #00e5ff; display: flex; gap: 12px; }
+
+        /* Timer Banner */
+        .timer-banner {
+            background: rgba(255, 215, 0, 0.1); border: 1px solid #ffd700;
+            padding: 8px 15px; border-radius: 8px; margin-bottom: 12px;
+            text-align: center; font-size: 13px; color: #ffd700; width: 100%; max-width: 650px; box-sizing: border-box;
+        }
+
+        /* Slot Machine Area */
+        .slot-container {
+            display: flex; gap: 6px; background: #252538; padding: 15px; border-radius: 15px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.25); border: 3px solid #ffd700; margin-top: 5px;
+            max-width: 100%; overflow-x: auto;
+        }
+        .reel-window {
+            width: 55px; height: 65px; background: #fff; border-radius: 8px; overflow: hidden; position: relative;
+        }
+        .reel { display: flex; flex-direction: column; align-items: center; position: absolute; width: 100%; top: 0; }
+        .symbol { width: 100%; height: 65px; font-size: 32px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+
+        /* Controls */
+        .controls { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; justify-content: center; }
+        .spin-btn {
+            padding: 12px 18px; font-size: 14px; font-weight: bold; background: #e50914; color: white;
+            border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(229, 9, 20, 0.4);
+        }
+        .spin-btn:disabled { background: #555 !important; cursor: not-allowed; box-shadow: none; }
+
+        /* Dashboard & Stats Box */
+        .dashboard-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            width: 100%; max-width: 650px; margin-top: 12px;
+        }
+        .card-section {
+            background: #1e1e2e; padding: 12px; border-radius: 10px; border: 1px solid #333; box-sizing: border-box;
+        }
+        .stat-line { display: flex; justify-content: space-between; font-size: 13px; margin: 4px 0; color: #ccc; }
+        .stat-line span.val { font-weight: bold; color: #00ff66; }
+
+        /* Modals */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); justify-content: center; align-items: center;
+            flex-direction: column; z-index: 100;
+        }
+        .modal-box {
+            background: #1e1e2e; color: #fff; padding: 20px; border-radius: 12px;
+            border: 2px solid #00e5ff; width: 340px; max-height: 80vh; overflow-y: auto; text-align: center;
+        }
+        .leader-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        .leader-table th, .leader-table td { padding: 6px; border-bottom: 1px solid #333; text-align: left; }
+        .leader-table th { color: #ffd700; }
+
+        .extra-section { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
+        .reward-btn { padding: 8px 12px; background: #2e7d32; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; }
+        .reward-btn:disabled { background: #555; cursor: not-allowed; }
+        
+        #result { margin-top: 10px; font-size: 16px; font-weight: bold; height: 25px; color: #00ffcc; text-align: center; }
+        .code-input-box { display: flex; gap: 8px; }
+        .code-input-box input { flex: 1; padding: 6px; border-radius: 5px; border: 1px solid #444; background: #111; color: #fff; }
+        .code-input-box button { padding: 6px 12px; background: #9c27b0; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Screen -->
+    <div id="loadingScreen">
+        <div class="loading-icon">🎰</div>
+        <div class="loading-title" id="txt-loading">ກຳລັງໂຫຼດເກມ...</div>
+        <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+        <div style="margin-top:8px; color:#00e5ff;" id="loadingText">0%</div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="user-profile">
+            <div class="avatar-box" onclick="triggerAvatarUpload()" title="ປ່ຽນຮູບໂປຣຟາຍ">
+                <img id="userAvatar" src="https://via.placeholder.com/45/ffd700/000000?text=🎰" alt="Avatar">
+            </div>
+            <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="uploadAvatar(event)">
+            <div class="user-info">
+                <span class="username" id="userNameDisplay" onclick="changeUsername()">Player_1001 ✏️</span>
+                <span class="user-rank" id="userGlobalRank">World Rank: #--</span>
+            </div>
+        </div>
+        <div class="stats-display">
+            <span>💎 <span id="gemsCount">100</span></span>
+            <span>🍀 <span id="luckCount">0</span></span>
+        </div>
+    </div>
+
+    <!-- Timer Reset Banner -->
+    <div class="timer-banner">
+        ⏳ ເວລາເຫຼືອກ່ອນລີເຊັດເພັດປະຈຳເດືອນ: <span id="resetTimer" style="font-weight: bold; color: #00ff66;">--d --h --m --s</span>
+    </div>
+
+    <h1 style="margin: 5px 0; font-size: 22px; color: #ffd700;" id="txt-title">🎰 ເຄື່ອງໝຸນສະລັອດ 7 ລໍ 🎰</h1>
+
+    <!-- 7-Reel Slot Machine -->
+    <div class="slot-container">
+        <div class="reel-window"><div class="reel" id="reel0"></div></div>
+        <div class="reel-window"><div class="reel" id="reel1"></div></div>
+        <div class="reel-window"><div class="reel" id="reel2"></div></div>
+        <div class="reel-window"><div class="reel" id="reel3"></div></div>
+        <div class="reel-window"><div class="reel" id="reel4"></div></div>
+        <div class="reel-window"><div class="reel" id="reel5"></div></div>
+        <div class="reel-window"><div class="reel" id="reel6"></div></div>
+    </div>
+
+    <div style="color: #00ff66; font-weight: bold; height: 20px; margin-top: 5px;" id="buffStatus"></div>
+
+    <!-- Spin Controls -->
+    <div class="controls">
+        <button class="spin-btn" id="spin1Btn" onclick="spin(1)">ໝຸນ 1x (10 💎)</button>
+        <button class="spin-btn" id="spin10Btn" onclick="spin(10)">ໝຸນ 10x (90 💎)</button>
+        <button class="spin-btn" style="background: #2e7d32;" id="useLuckBtn" onclick="useLuckBuff()">Lucky Buff 🍀</button>
+    </div>
+
+    <div id="result"></div>
+
+    <!-- Extra Actions -->
+    <div class="extra-section">
+        <button class="reward-btn" id="dailyBtn" onclick="claimDaily()">🎁 ທຸກມື້ (30 💎)</button>
+        <button class="reward-btn" style="background: #ff8f00;" onclick="watchRealAd('gems')">📺 ໂຄສະນາ (+20 💎)</button>
+        <button class="reward-btn" style="background: #0288d1;" onclick="watchRealAd('luck')">📺 ໂຄສະນາ (+1 🍀)</button>
+        <button class="reward-btn" style="background: #e91e63;" onclick="buyLuckItem()">🛒 ຊື້ 1 🍀 (50 💎)</button>
+        <button class="reward-btn" style="background: #673ab7;" onclick="openLeaderboard()">🏆 ຕາຕະລາງຜູ້ຫຼິ້ນ</button>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard-grid">
+        <div class="card-section">
+            <div style="font-weight:bold; color:#ffd700; margin-bottom:6px;" id="txt-stat-title">📊 ສະຖິຕິການຫຼິ້ນ</div>
+            <div class="stat-line"><span id="txt-total-spins">ໝຸນທັງໝົດ:</span><span class="val" id="statTotalSpins">0</span></div>
+            <div class="stat-line"><span id="txt-winrate">Win Rate:</span><span class="val" id="statWinRate">0%</span></div>
+        </div>
+
+        <div class="card-section">
+            <div style="font-weight:bold; color:#ffd700; margin-bottom:6px;" id="txt-match-history">🎯 ສະຖິຕິການອອກລາງວັນ</div>
+            <div class="stat-line"><span>7 Matches (1%):</span><span class="val" id="m7">0</span></div>
+            <div class="stat-line"><span>6 Matches (3%):</span><span class="val" id="m6">0</span></div>
+            <div class="stat-line"><span>5 Matches (4%):</span><span class="val" id="m5">0</span></div>
+            <div class="stat-line"><span>4 Matches (5%):</span><span class="val" id="m4">0</span></div>
+            <div class="stat-line"><span>3 Matches (8%):</span><span class="val" id="m3">0</span></div>
+            <div class="stat-line"><span>2 Matches (10%):</span><span class="val" id="m2">0</span></div>
+        </div>
+    </div>
+
+    <!-- Redeem Code Section -->
+    <div class="card-section" style="width: 100%; max-width: 650px; margin-top: 10px;">
+        <div style="font-weight: bold; margin-bottom: 6px; font-size: 13px;" id="txt-redeem-title">🔑 ໃສ່ໂຄດລະຫັດ:</div>
+        <div class="code-input-box">
+            <input type="text" id="codeInput" placeholder="ໃສ່ລະຫັດຢູ່ຮີ...">
+            <button onclick="redeemCode()">ແລກໂຄດ</button>
+        </div>
+    </div>
+
+    <!-- Leaderboard Modal -->
+    <div class="modal" id="leaderboardModal">
+        <div class="modal-box">
+            <h3 style="color:#ffd700; margin-top:0;">🏆 Top 100 Leaderboard</h3>
+            <div style="font-size:12px; color:#00e5ff; margin-bottom:10px;" id="myRankModal">Your Rank: #--</div>
+            <table class="leader-table">
+                <thead>
+                    <tr><th>#</th><th>Player</th><th>Gems 💎</th></tr>
+                </thead>
+                <tbody id="leaderboardBody"></tbody>
+            </table>
+            <button onclick="closeModal('leaderboardModal')" style="margin-top:15px; padding:8px 15px; background:#ff5252; color:#fff; border:none; border-radius:5px; cursor:pointer;">ອັດ</button>
+        </div>
+    </div>
+
+    <!-- Ad Modal -->
+    <div class="modal" id="adModal">
+        <div class="modal-box" style="width: 320px;">
+            <h3 style="color:#ffd700; margin-top:0;">📺 Sponsored Advertisement</h3>
+            <div id="adContainer" style="min-height: 150px; background: #111; display:flex; justify-content:center; align-items:center; border:1px dashed #555; margin:10px 0; padding:10px;">
+                <p style="font-size:12px; color:#aaa;">[ Real AdSense Loading... ]</p>
+            </div>
+            <div style="color:red; font-weight:bold;">Ad Ends In: <span id="adTimer">15</span>s</div>
+        </div>
+    </div>
+
+    <script>
+        const MAX_GEMS = 2500000;
+        const symbols = ['😲', '⌚', '🦦', '🤑', '♟️', '🍕', '❤️', '🦽', '🙀', '😎'];
+        const reelElements = [0,1,2,3,4,5,6].map(i => document.getElementById(`reel${i}`));
+
+        let gems = parseInt(localStorage.getItem('slot7_gems')) || 100;
+        let luckItems = parseInt(localStorage.getItem('slot7_luck')) || 0;
+        let username = localStorage.getItem('slot7_username') || "Player_" + Math.floor(1000 + Math.random() * 9000);
+        let avatarData = localStorage.getItem('slot7_avatar') || "https://via.placeholder.com/45/ffd700/000000?text=🎰";
+        let lastDailyTime = parseInt(localStorage.getItem('slot7_daily_time')) || 0;
+        let lastResetMonth = parseInt(localStorage.getItem('slot7_last_reset_month')) ?? -1;
+        let redeemedCodes = JSON.parse(localStorage.getItem('slot7_redeemed_codes')) || [];
+
+        let stats = JSON.parse(localStorage.getItem('slot7_stats')) || {
+            totalSpins: 0, wins: 0, m7: 0, m6: 0, m5: 0, m4: 0, m3: 0, m2: 0
+        };
+
+        let isLuckActive = false;
+        let luckTimer = null;
+
+        // --- Init ---
+        window.addEventListener('load', () => {
+            checkMonthlyReset();
+            startResetCountdown();
+            loadProfileData();
+            updateUI();
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 15;
+                if (progress > 100) progress = 100;
+                document.getElementById('progressBar').style.width = `${progress}%`;
+                document.getElementById('loadingText').innerText = `${progress}%`;
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        document.getElementById('loadingScreen').style.opacity = '0';
+                        document.getElementById('loadingScreen').style.visibility = 'hidden';
+                    }, 300);
+                }
+            }, 50);
+        });
+
+        function getRandomSymbol() { return symbols[Math.floor(Math.random() * symbols.length)]; }
+
+        // -----------------------------------------------------------
+        // 🔥 ປິດຊ່ອງໂຫວ່: ສຸ່ມຢ່າງຮອບຄອບ + ຫ້າມມີຄູ່ຕິດກັນຖ້າ matchType = 0
+        // -----------------------------------------------------------
+        function generateOutcome() {
+            const rand = Math.random() * 100;
+            const buff = isLuckActive ? 1.5 : 1.0;
+
+            let matchType = 0;
+            if (rand < 1.0 * buff) matchType = 7;
+            else if (rand < 4.0 * buff) matchType = 6;
+            else if (rand < 8.0 * buff) matchType = 5;
+            else if (rand < 13.0 * buff) matchType = 4;
+            else if (rand < 21.0 * buff) matchType = 3;
+            else if (rand < 31.0 * buff) matchType = 2;
+            else matchType = 0;
+
+            let res = [];
+
+            if (matchType === 0) {
+                // 🛑 ບັງຄັບບໍ່ໃຫ້ມີສັນຍາລັກຄືກັນຢູ່ຕິດກັນເດັດຂາດ!
+                for (let i = 0; i < 7; i++) {
+                    let sym;
+                    do {
+                        sym = getRandomSymbol();
+                    } while (i > 0 && sym === res[i - 1]);
+                    res.push(sym);
+                }
+            } else {
+                // ຖ້າຖືກລາງວັນ: ໃຫ້ສຸ່ມວາງໂຕຕິດກັນຢ່າງຊັດເຈນ
+                res = Array.from({length: 7}, () => getRandomSymbol());
+                const mainSym = getRandomSymbol();
+                const maxStartIndex = 7 - matchType;
+                const startIndex = Math.floor(Math.random() * (maxStartIndex + 1));
+
+                for (let i = 0; i < matchType; i++) {
+                    res[startIndex + i] = mainSym;
+                }
+            }
+
+            return { finalSymbols: res };
+        }
+
+        // -----------------------------------------------------------
+        // 🔥 ປິດຊ່ອງໂຫວ່ Animation: ບັງຄັບໃຫ້ Reel ຕົກຢູ່ບ່ອນດຽວກັນ 100%
+        // -----------------------------------------------------------
+        function animateSpin(finalSymbols, duration) {
+            return new Promise(resolve => {
+                const symbolHeight = 65; // ຄວາມສູງເປ໊ະໆ
+                const spinsCount = 12;
+
+                reelElements.forEach((reel, index) => {
+                    let strip = '';
+                    for (let i = 0; i < spinsCount; i++) {
+                        strip += `<div class="symbol">${getRandomSymbol()}</div>`;
+                    }
+                    // ໂຕສຸດທ້າຍທີ່ຈະມາຢຸດຢູ່ກາງກ່ອງ
+                    strip += `<div class="symbol">${finalSymbols[index]}</div>`;
+
+                    reel.innerHTML = strip;
+                    reel.style.transition = 'none';
+                    reel.style.top = '0px';
+
+                    setTimeout(() => {
+                        reel.style.transition = `top ${duration / 1000}s cubic-bezier(0.1, 0.9, 0.2, 1)`;
+                        reel.style.top = `-${spinsCount * symbolHeight}px`;
+                    }, 20);
+                });
+
+                setTimeout(resolve, duration + 150);
+            });
+        }
+
+        // -----------------------------------------------------------
+        // ຟັງຊັນກວດນັບລາງວັນຈາກສັນຍາລັກຕິດກັນ
+        // -----------------------------------------------------------
+        function getConsecutiveReward(symbolArray) {
+            let totalReward = 0;
+            let maxMatchKey = 0;
+            let currentCount = 1;
+
+            for (let i = 0; i < symbolArray.length - 1; i++) {
+                if (symbolArray[i] === symbolArray[i + 1]) {
+                    currentCount++;
+                } else {
+                    if (currentCount >= 2) {
+                        totalReward += calcRewardByCount(currentCount);
+                        if (currentCount > maxMatchKey) maxMatchKey = currentCount;
+                    }
+                    currentCount = 1;
+                }
+            }
+            if (currentCount >= 2) {
+                totalReward += calcRewardByCount(currentCount);
+                if (currentCount > maxMatchKey) maxMatchKey = currentCount;
+            }
+
+            return { reward: totalReward, maxMatch: maxMatchKey };
+        }
+
+        function calcRewardByCount(count) {
+            if (count === 7) return 200;
+            if (count === 6) return 150;
+            if (count === 5) return 120;
+            if (count === 4) return 100;
+            if (count === 3) return 75;
+            if (count === 2) return 50;
+            return 0;
+        }
+
+        // -----------------------------------------------------------
+        // Spin Function
+        // -----------------------------------------------------------
+        async function spin(times) {
+            const cost = times === 1 ? 10 : 90;
+            if (gems < cost) return;
+
+            gems -= cost;
+            updateUI();
+            document.getElementById('spin1Btn').disabled = true;
+            document.getElementById('spin10Btn').disabled = true;
+
+            let totalReward = 0;
+            const spinDuration = times === 10 ? 350 : 900;
+
+            for (let t = 0; t < times; t++) {
+                document.getElementById('result').innerText = `ກຳລັງໝຸນ... (${t + 1}/${times})`;
+                const outcome = generateOutcome();
+                
+                await animateSpin(outcome.finalSymbols, spinDuration);
+
+                stats.totalSpins++;
+
+                const resultData = getConsecutiveReward(outcome.finalSymbols);
+                const reward = resultData.reward;
+
+                if (resultData.maxMatch > 0) {
+                    stats[`m${resultData.maxMatch}`]++;
+                }
+
+                if (reward > 0) {
+                    totalReward += reward;
+                    stats.wins++;
+                }
+            }
+
+            gems += totalReward;
+            updateUI();
+
+            if (totalReward > 0) {
+                document.getElementById('result').innerText = `🎉 ຍິນດີດ້ວຍ! ທ່ານໄດ້ຮັບ +${totalReward} 💎`;
+            } else {
+                document.getElementById('result').innerText = `❌ ໂຊກບໍ່ດີ, ລອງອີກຄັ້ງ!`;
+            }
+        }
+
+        // -----------------------------------------------------------
+        // Monthly Reset & Timer System
+        // -----------------------------------------------------------
+        function checkMonthlyReset() {
+            const now = new Date();
+            const monthKey = now.getFullYear() * 12 + now.getMonth();
+
+            if (lastResetMonth !== -1 && lastResetMonth !== monthKey) {
+                if (gems > 1000) {
+                    gems = 1000;
+                    alert("🔄 ເລີ່ມຕົ້ນເດືອນໃໝ່! ເພັດຂອງທ່ານຖືກປັບເຫຼືອ 1,000 💎");
+                } else {
+                    alert("ℹ️ ເລີ່ມຕົ້ນເດືອນໃໝ່! ເພັດຂອງທ່ານຕໍ່າກວ່າ 1,000 💎 ຈຶ່ງບໍ່ຖືກລີເຊັດ");
+                }
+            }
+            lastResetMonth = monthKey;
+            localStorage.setItem('slot7_last_reset_month', lastResetMonth);
+        }
+
+        function startResetCountdown() {
+            function updateTimer() {
+                const now = new Date();
+                const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0);
+                const diff = nextMonth - now;
+
+                if (diff <= 0) {
+                    checkMonthlyReset();
+                    updateUI();
+                    return;
+                }
+
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                const minutes = Math.floor((diff / (1000 * 60)) % 60);
+                const seconds = Math.floor((diff / 1000) % 60);
+
+                document.getElementById('resetTimer').innerText = `${days}ວັນ ${hours}ຊມ ${minutes}ນາທີ ${seconds}ວິ`;
+            }
+            updateTimer();
+            setInterval(updateTimer, 1000);
+        }
+
+        // -----------------------------------------------------------
+        // UI Helpers & Data Persistence
+        // -----------------------------------------------------------
+        function updateUI() {
+            if (gems > MAX_GEMS) gems = MAX_GEMS;
+
+            document.getElementById('gemsCount').innerText = gems.toLocaleString();
+            document.getElementById('luckCount').innerText = luckItems;
+            document.getElementById('spin1Btn').disabled = gems < 10;
+            document.getElementById('spin10Btn').disabled = gems < 90;
+            document.getElementById('useLuckBtn').disabled = luckItems <= 0 || isLuckActive;
+
+            document.getElementById('statTotalSpins').innerText = stats.totalSpins;
+            const winRate = stats.totalSpins > 0 ? ((stats.wins / stats.totalSpins) * 100).toFixed(1) : 0;
+            document.getElementById('statWinRate').innerText = `${winRate}%`;
+
+            document.getElementById('m7').innerText = stats.m7;
+            document.getElementById('m6').innerText = stats.m6;
+            document.getElementById('m5').innerText = stats.m5;
+            document.getElementById('m4').innerText = stats.m4;
+            document.getElementById('m3').innerText = stats.m3;
+            document.getElementById('m2').innerText = stats.m2;
+
+            calculateGlobalRank();
+            saveGameData();
+        }
+
+        function saveGameData() {
+            localStorage.setItem('slot7_gems', gems);
+            localStorage.setItem('slot7_luck', luckItems);
+            localStorage.setItem('slot7_username', username);
+            localStorage.setItem('slot7_avatar', avatarData);
+            localStorage.setItem('slot7_stats', JSON.stringify(stats));
+        }
+
+        function loadProfileData() {
+            document.getElementById('userNameDisplay').innerText = username + " ✏️";
+            document.getElementById('userAvatar').src = avatarData;
+        }
+
+        function changeUsername() {
+            const newName = prompt("ໃສ່ຊື່ຜູ້ຫຼິ້ນໃໝ່:", username);
+            if (!newName) return;
+            username = newName.trim();
+            document.getElementById('userNameDisplay').innerText = username + " ✏️";
+            updateUI();
+        }
+
+        function triggerAvatarUpload() { document.getElementById('avatarInput').click(); }
+        function uploadAvatar(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    avatarData = e.target.result;
+                    document.getElementById('userAvatar').src = avatarData;
+                    saveGameData();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function useLuckBuff() {
+            if (luckItems <= 0 || isLuckActive) return;
+            luckItems--;
+            isLuckActive = true;
+            let timeLeft = 25;
+            updateUI();
+
+            document.getElementById('buffStatus').innerText = `🔥 Lucky Buff x1.5 Active: ${timeLeft}s`;
+            luckTimer = setInterval(() => {
+                timeLeft--;
+                if (timeLeft > 0) {
+                    document.getElementById('buffStatus').innerText = `🔥 Lucky Buff x1.5 Active: ${timeLeft}s`;
+                } else {
+                    clearInterval(luckTimer);
+                    isLuckActive = false;
+                    document.getElementById('buffStatus').innerText = '';
+                    updateUI();
+                }
+            }, 1000);
+        }
+
+        function buyLuckItem() {
+            if (gems < 50) return alert('ເພັດບໍ່ພໍ!');
+            gems -= 50; luckItems++; updateUI();
+        }
+
+        function calculateGlobalRank() {
+            let rank = Math.max(1, 101 - Math.floor(gems / 50));
+            document.getElementById('userGlobalRank').innerText = `World Rank: #${rank}`;
+            document.getElementById('myRankModal').innerText = `Your Rank: #${rank}`;
+        }
+
+        function openLeaderboard() {
+            const tbody = document.getElementById('leaderboardBody');
+            tbody.innerHTML = '';
+            let dummy = [
+                { name: "JackpotKing", gems: 15000 },
+                { name: "ProPlayer", gems: 8200 },
+                { name: username, gems: gems }
+            ];
+            for (let i = 4; i <= 100; i++) {
+                dummy.push({ name: `Player_${1000 + i}`, gems: Math.max(10, 5000 - (i * 45)) });
+            }
+            dummy.sort((a, b) => b.gems - a.gems);
+            dummy.slice(0, 100).forEach((p, idx) => {
+                const tr = document.createElement('tr');
+                if(p.name === username) tr.style.background = "rgba(0,229,255,0.2)";
+                tr.innerHTML = `<td>${idx + 1}</td><td>${p.name}</td><td>${p.gems.toLocaleString()} 💎</td>`;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('leaderboardModal').style.display = 'flex';
+        }
+
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        function watchRealAd(type) {
+            const adModal = document.getElementById('adModal');
+            adModal.style.display = 'flex';
+            let timer = 15;
+            document.getElementById('adTimer').innerText = timer;
+            const interval = setInterval(() => {
+                timer--;
+                document.getElementById('adTimer').innerText = timer;
+                if (timer <= 0) {
+                    clearInterval(interval);
+                    adModal.style.display = 'none';
+                    if (type === 'gems') gems += 20;
+                    else luckItems += 1;
+                    updateUI();
+                    alert("📺 ຮັບລາງວັນສຳເລັດ!");
+                }
+            }, 1000);
+        }
+
+        function claimDaily() {
+            const now = Date.now();
+            const cooldown = 24 * 60 * 60 * 1000;
+            if (now - lastDailyTime < cooldown) {
+                const hrs = Math.ceil((cooldown - (now - lastDailyTime)) / (1000 * 60 * 60));
+                alert(`⏰ ກະລຸນາຖໍ້າອີກ ${hrs} ຊົ່ວໂມງ!`);
+                return;
+            }
+            gems += 30;
+            lastDailyTime = now;
+            localStorage.setItem('slot7_daily_time', lastDailyTime);
+            updateUI();
+            alert("🎉 ຮັບ +30 ເພັດປະຈຳມື້!");
+        }
+
+        function redeemCode() {
+            const code = document.getElementById('codeInput').value.trim().toUpperCase();
+            if (redeemedCodes.includes(code)) return alert("❌ ໂຄດນີ້ຖືກໃຊ້ໄປແລ້ວ!");
+            if (code === "FREE20") {
+                gems += 20;
+                redeemedCodes.push(code);
+                localStorage.setItem('slot7_redeemed_codes', JSON.stringify(redeemedCodes));
+                updateUI();
+                alert("✅ ແລກໂຄດສຳເລັດ: +20 💎");
+            } else {
+                alert("❌ ໂຄດບໍ່ຖືກຕ້ອງ!");
+            }
+        }
+    </script>
+</body>
+</html>
