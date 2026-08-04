@@ -118,6 +118,20 @@ button:hover{filter:brightness(1.12);transform:translateY(-1px)}
 }
 
 </style>
+
+<style>
+.shop-sell .item, .shop-sell .shop-item, .shop-sell .shop-card,
+.shop .item, .shop .shop-item, .shop .shop-card{
+  cursor:pointer;
+  user-select:none;
+}
+.shop-sell button, .shop button{
+  position:relative;
+  z-index:5;
+  cursor:pointer!important;
+}
+</style>
+
 </head>
 <body>
 <div class="game-hud">
@@ -206,7 +220,7 @@ button:hover{filter:brightness(1.12);transform:translateY(-1px)}
   <h2>🐟 ຮັບຊື້ປາ</h2>
   <div class="small muted">ເລືອກປາຈາກກະເປົ໋າເພື່ອຂາຍ ຫຼື ຂາຍປາທັງໝົດ</div>
   <div style="margin:10px 0">
-    <button onclick="sellAllFish()">💰 ຂາຍປາທັງໝົດ</button>
+    <button onclick="sellAllFishFixed();event.stopPropagation()">💰 ຂາຍປາທັງໝົດ</button>
   </div>
   <div id="sellFishList" class="grid"></div>
 </div>
@@ -531,6 +545,106 @@ setInterval(()=>{ if(state.boostUntil>Date.now()) render(); },1000);render();ren
   }
   setInterval(syncGameHud,500);
   window.addEventListener("load",syncGameHud);
+})();
+</script>
+
+
+<script>
+(function(){
+  function shopClickFix(){
+    document.addEventListener("click", function(e){
+      const el = e.target.closest("[data-shop-item], .shop-item, .shop-card, .item");
+      if(!el) return;
+      const btn = el.querySelector("button");
+      if(btn && e.target !== btn && !e.target.closest("button")){
+        btn.click();
+      }
+    }, true);
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", shopClickFix);
+  else shopClickFix();
+})();
+</script>
+
+
+<script>
+(function(){
+  function getFishValue(x){
+    try{
+      const base = (typeof fish!=="undefined" && Array.isArray(fish))
+        ? fish.find(f=>f.name===x.name) : null;
+      const basePrice = Number(base?.price ?? x.price ?? 10);
+      const baseMax = Number(base?.max ?? x.max ?? x.weight ?? 1);
+      const weight = Number(x.weight ?? 1);
+      return Math.max(1, Math.floor(basePrice * (weight / Math.max(1,baseMax))));
+    }catch(e){ return 10; }
+  }
+
+  window.sellFishFixed = function(index){
+    if(typeof state==="undefined" || !Array.isArray(state.bag)) return;
+    const x=state.bag[index];
+    if(!x) return;
+    const value=getFishValue(x);
+    state.money=(Number(state.money)||0)+value;
+    state.bag.splice(index,1);
+    if(typeof updateMission==="function") updateMission("sell",1);
+    if(typeof save==="function") save();
+    if(typeof render==="function") render();
+    renderSellFishFixed();
+    if(typeof renderMissions==="function") renderMissions();
+  };
+
+  window.sellAllFishFixed = function(){
+    if(typeof state==="undefined" || !Array.isArray(state.bag) || !state.bag.length) return;
+    const count=state.bag.length;
+    let total=0;
+    state.bag.forEach(x=>total+=getFishValue(x));
+    state.money=(Number(state.money)||0)+total;
+    state.bag=[];
+    if(typeof updateMission==="function") updateMission("sell",count);
+    if(typeof save==="function") save();
+    if(typeof render==="function") render();
+    renderSellFishFixed();
+    if(typeof renderMissions==="function") renderMissions();
+  };
+
+  window.renderSellFishFixed = function(){
+    const el=document.getElementById("sellFishList");
+    if(!el || typeof state==="undefined") return;
+    const bag=Array.isArray(state.bag)?state.bag:[];
+    if(!bag.length){
+      el.innerHTML='<div class="small muted">🎒 ບໍ່ມີປາໃນກະເປົ໋າ</div>';
+      return;
+    }
+    el.innerHTML=bag.map((x,i)=>{
+      const rar=x.rar||x.rarity||"Common";
+      const wt=Number(x.weight||0);
+      const val=getFishValue(x);
+      return `<div class="item sell-card" data-sell-index="${i}" style="cursor:pointer">
+        <div style="font-size:15px;font-weight:800">🐟 ${x.name||"Fish"}</div>
+        <div class="small">${rar} · ⚖️ ${wt.toFixed(1)} kg · 💰 ${val}</div>
+        <button type="button" onclick="sellFishFixed(${i});event.stopPropagation()">🐟 ຂາຍ ${val}</button>
+      </div>`;
+    }).join("");
+  };
+
+  function installSellEvents(){
+    document.addEventListener("click",function(e){
+      const card=e.target.closest("[data-sell-index]");
+      if(card && !e.target.closest("button")){
+        sellFishFixed(Number(card.dataset.sellIndex));
+      }
+    });
+    const all=document.querySelector(".shop-sell button[onclick*='sellAllFish']");
+    if(all) all.setAttribute("onclick","sellAllFishFixed();event.stopPropagation()");
+    renderSellFishFixed();
+  }
+
+  if(document.readyState==="loading")
+    document.addEventListener("DOMContentLoaded",installSellEvents);
+  else installSellEvents();
+
+  setInterval(renderSellFishFixed,800);
 })();
 </script>
 
