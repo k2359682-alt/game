@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7-Reel Lucky Gems Slot (Fixed & Complete)</title>
+
+    <!-- Firebase SDKs for Real Auth -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <!-- Google AdSense SDK -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1234567890123456" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            --primary-bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #ffffff;
+            --accent-red: #ef4444;
+            --btn-disabled: #4b5563;
+            --gold: #fbbf24;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #090d16;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999;
+        }
+
+        .loader-avatar {
+            width: 100px; height: 100px; border-radius: 50%;
+            animation: bounce 1.2s infinite ease-in-out;
+        }
+
+        .progress-bar-container {
+            width: 260px; height: 16px; background: #334155; border-radius: 8px;
+            overflow: hidden; margin-top: 15px; border: 1px solid #475569;
+        }
+
+        .progress-bar { width: 0%; height: 100%; background: #3b82f6; transition: width 0.2s; }
+
+        /* Header UI */
+        header {
+            width: 100%; max-width: 800px; display: flex;
+            justify-content: space-between; align-items: center;
+            padding: 12px 20px; background: var(--card-bg);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .user-profile { display: flex; align-items: center; gap: 12px; }
+
+        .user-avatar {
+            width: 48px; height: 48px; border-radius: 50%;
+            border: 2px solid var(--gold); cursor: pointer;
+        }
+
+        .gem-display {
+            background: #064e3b; padding: 8px 16px; border-radius: 20px;
+            font-weight: bold; color: #34d399; font-size: 1.1rem;
+            border: 1px solid #10b981;
+        }
+
+        /* Slot Machine Area */
+        .slot-container {
+            display: flex; gap: 6px; background: #000; padding: 15px;
+            border-radius: 12px; border: 3px solid var(--gold); margin: 20px 0;
+            box-shadow: 0 0 25px rgba(251, 191, 36, 0.2);
+        }
+
+        .reel {
+            width: 52px; height: 75px; background: #0f172a; border-radius: 6px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 2.2rem; overflow: hidden; border: 1px solid #334155;
+            transition: transform 0.1s;
+        }
+
+        .spinning {
+            animation: reelSpin 0.1s infinite linear;
+        }
+
+        @keyframes reelSpin {
+            0% { transform: translateY(-10px); }
+            50% { transform: translateY(10px); }
+            100% { transform: translateY(-10px); }
+        }
+
+        /* Buttons */
+        .controls { display: flex; gap: 12px; margin-bottom: 15px; flex-wrap: wrap; justify-content: center; }
+
+        .btn {
+            padding: 12px 20px; border: none; border-radius: 8px;
+            font-weight: bold; font-size: 0.95rem; cursor: pointer; color: white;
+            transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+        }
+
+        .btn-spin { background-color: var(--accent-red); }
+        .btn-spin:hover:not(.btn-disabled) { background-color: #dc2626; }
+        .btn-disabled { background-color: var(--btn-disabled) !important; cursor: not-allowed; opacity: 0.6; }
+
+        /* Modal for Profile & Username */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-content { background: var(--card-bg); padding: 20px; border-radius: 10px; text-align: center; max-width: 300px; }
+        .modal-content input { padding: 8px; width: 80%; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc; }
+
+        /* Panels */
+        .panel {
+            width: 90%; max-width: 800px; background: var(--card-bg);
+            padding: 15px; border-radius: 8px; margin-bottom: 15px;
+        }
+
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+    </style>
+</head>
+<body>
+
+    <!-- 1. Loading Screen -->
+    <div id="loading-screen">
+        <img src="https://api.dicebear.com/7.x/bottts/svg?seed=LuckyMascot" class="loader-avatar" alt="Mascot">
+        <h3 id="txt-loading">Loading Game...</h3>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progress"></div>
+        </div>
+    </div>
+
+    <!-- 2. Header / Profile -->
+    <header>
+        <div class="user-profile">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Player1" class="user-avatar" id="avatar-img" onclick="openProfileModal()">
+            <div>
+                <div id="user-name" style="font-weight: bold;">Player_123</div>
+                <small id="user-rank" style="color: var(--gold);">Global Rank: #42</small>
+            </div>
+        </div>
+        <div class="gem-display">
+            💎 <span id="gem-count">100</span>
+        </div>
+    </header>
+
+    <!-- 3. Slot Game Screen -->
+    <main style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+        <div class="slot-container">
+            <div class="reel" id="reel-0">🤑</div>
+            <div class="reel" id="reel-1">🦦</div>
+            <div class="reel" id="reel-2">🙀</div>
+            <div class="reel" id="reel-3">🦜</div>
+            <div class="reel" id="reel-4">😭</div>
+            <div class="reel" id="reel-5">🐷</div>
+            <div class="reel" id="reel-6">🦭</div>
+        </div>
+
+        <!-- Spin Controls -->
+        <div class="controls">
+            <button class="btn btn-spin" id="btn-spin-1" onclick="handleSpin(1)">
+                <span id="txt-spin1">Spin 1x</span> (10💎)
+            </button>
+            <button class="btn btn-spin" id="btn-spin-10" onclick="handleSpin(10)">
+                <span id="txt-spin10">Spin 10x</span> (90💎)
+            </button>
+        </div>
+
+        <!-- Daily & Ad Rewards -->
+        <div class="controls">
+            <button class="btn" style="background: #10b981;" id="btn-daily" onclick="claimDaily()">
+                🎁 Daily (30💎) <span id="daily-timer"></span>
+            </button>
+            <button class="btn" style="background: #8b5cf6;" onclick="watchAd()">
+                📺 Watch Ad (20s) (+20💎)
+            </button>
+        </div>
+
+        <!-- Social Auth -->
+        <div class="panel" style="text-align: center;">
+            <p id="txt-login-prompt">Login with Social Media to Save Progress & Rank</p>
+            <button class="btn" style="background: #db4437; display: inline-flex;" onclick="loginGoogle()">Login with Google</button>
+            <button class="btn" style="background: #4267B2; display: inline-flex;" onclick="loginFB()">Login with Facebook</button>
+        </div>
+
+        <!-- Stats & Rules -->
+        <div class="panel">
+            <h3 id="txt-stats-title">📊 Controlled Win Rates & Stats</h3>
+            <ul>
+                <li>7-Match (0.5% Odds): <span id="stat-7">0</span> times (Prize: 200💎)</li>
+                <li>6-Match (1.0% Odds): <span id="stat-6">0</span> times (Prize: 150💎)</li>
+                <li>5-Match (1.5% Odds): <span id="stat-5">0</span> times (Prize: 100💎)</li>
+                <li>4-Match (2.0% Odds): <span id="stat-4">0</span> times (Prize: 75💎)</li>
+                <li>3-Match (3.0% Odds): <span id="stat-3">0</span> times (Prize: 50💎)</li>
+                <li>2-Match (5.0% Odds): <span id="stat-2">0</span> times (Prize: 20💎)</li>
+            </ul>
+        </div>
+    </main>
+
+    <!-- Modal Change Name -->
+    <div class="modal" id="profile-modal">
+        <div class="modal-content">
+            <h3>Change Username</h3>
+            <input type="text" id="username-input" placeholder="Enter unique name">
+            <button class="btn" style="background: #10b981; margin: 0 auto;" onclick="saveUsername()">Save</button>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Config Placeholder (Paste your Firebase credentials here)
+        const firebaseConfig = { apiKey: "YOUR_API_KEY", authDomain: "YOUR_PROJECT.firebaseapp.com" };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+
+        // Audio Effects
+        const soundSpin = new Audio('spin.mp3');
+        const soundWin = new Audio('win.mp3');
+        const soundClick = new Audio('click.mp3');
+
+        function playSound(audio) {
+            audio.currentTime = 0;
+            audio.play().catch(() => {});
+        }
+
+        // Symbols list (13 items)
+        const symbols = ['🤑', '🦦', '🙀', '🦜', '😭', '🐷', '🦭', '🥚', '🚓', '🕶️', '💀', '🐚', '🐓'];
+        let gems = parseInt(localStorage.getItem('gems')) || 100;
+        let stats = JSON.parse(localStorage.getItem('stats')) || { 7: 0, 6: 0, 5: 0, 4: 0, 3: 0, 2: 0 };
+        let existingUsernames = ["Player_123", "Admin", "ProGamer"]; // Mock existing database
+
+        // Multi-language Auto Detection
+        const i18n = {
+            en: { loading: "Loading Game...", spin1: "Spin 1x", spin10: "Spin 10x", stats: "📊 Controlled Win Rates & Stats" },
+            lo: { loading: "ກຳລັງໂຫຼດເກມ...", spin1: "ສຸ່ມ 1 ເທື່ອ", spin10: "ສຸ່ມ 10 ເທື່ອ", stats: "📊 ອັດຕາຊະນະ ແລະ ສະຖິຕິ" }
+        };
+        const lang = navigator.language.startsWith('lo') ? 'lo' : 'en';
+
+        // Initialize UI & Loading Screen
+        let progress = 0;
+        const loadInt = setInterval(() => {
+            progress += 20;
+            document.getElementById('progress').style.width = progress + '%';
+            if (progress >= 100) {
+                clearInterval(loadInt);
+                document.getElementById('loading-screen').style.display = 'none';
+            }
+        }, 100);
+
+        function applyLanguage() {
+            document.getElementById('txt-loading').innerText = i18n[lang].loading;
+            document.getElementById('txt-spin1').innerText = i18n[lang].spin1;
+            document.getElementById('txt-spin10').innerText = i18n[lang].spin10;
+            document.getElementById('txt-stats-title').innerText = i18n[lang].stats;
+        }
+
+        function updateUI() {
+            document.getElementById('gem-count').innerText = gems;
+            localStorage.setItem('gems', gems);
+            localStorage.setItem('stats', JSON.stringify(stats));
+
+            const btn1 = document.getElementById('btn-spin-1');
+            const btn10 = document.getElementById('btn-spin-10');
+
+            if (gems < 10) btn1.classList.add('btn-disabled'); else btn1.classList.remove('btn-disabled');
+            if (gems < 90) btn10.classList.add('btn-disabled'); else btn10.classList.remove('btn-disabled');
+
+            // Render Stats
+            for (let i = 2; i <= 7; i++) {
+                document.getElementById(`stat-${i}`).innerText = stats[i];
+            }
+
+            checkDailyCooldown();
+        }
+
+        // Logic Calculator: Forced Probability Match according to Odds Requirements
+        function generateControlledReels() {
+            const rand = Math.random() * 100; // 0 to 100%
+            let streakToForce = 1;
+
+            if (rand < 0.5) streakToForce = 7;        // 0.5%
+            else if (rand < 1.5) streakToForce = 6;   // 1.0% (0.5 + 1.0)
+            else if (rand < 3.0) streakToForce = 5;   // 1.5%
+            else if (rand < 5.0) streakToForce = 4;   // 2.0%
+            else if (rand < 8.0) streakToForce = 3;   // 3.0%
+            else if (rand < 13.0) streakToForce = 2;  // 5.0%
+            else streakToForce = 1;                   // No match win
+
+            let result = [];
+            const chosenSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+
+            // Fill matched streak consecutively
+            for (let i = 0; i < streakToForce; i++) {
+                result.push(chosenSymbol);
+            }
+
+            // Fill remaining reels with non-matching adjacent symbols
+            while (result.length < 7) {
+                let nextSym = symbols[Math.floor(Math.random() * symbols.length)];
+                if (nextSym !== result[result.length - 1]) {
+                    result.push(nextSym);
+                }
+            }
+            return { result, streak: streakToForce };
+        }
+
+        // Spin Handler with Visual Reel Animations
+        async function handleSpin(times) {
+            playSound(soundClick);
+            const cost = times === 1 ? 10 : 90;
+            if (gems < cost) return;
+
+            gems -= cost;
+            updateUI();
+            playSound(soundSpin);
+
+            // Add animation CSS
+            for (let i = 0; i < 7; i++) {
+                document.getElementById(`reel-${i}`).classList.add('spinning');
+            }
+
+            // Delay for animation feeling
+            await new Promise(r => setTimeout(r, 600));
+
+            for (let t = 0; t < times; t++) {
+                let { result, streak } = generateControlledReels();
+                
+                if (streak >= 2) {
+                    stats[streak]++;
+                    const rewards = { 7: 200, 6: 150, 5: 100, 4: 75, 3: 50, 2: 20 };
+                    gems += rewards[streak];
+                    playSound(soundWin);
+                }
+
+                // Render result on screen
+                for (let i = 0; i < 7; i++) {
+                    document.getElementById(`reel-${i}`).innerText = result[i];
+                }
+            }
+
+            // Remove animation CSS
+            for (let i = 0; i < 7; i++) {
+                document.getElementById(`reel-${i}`).classList.remove('spinning');
+            }
+
+            updateUI();
+        }
+
+        // 24-Hour Cooldown Daily Reward Logic
+        function claimDaily() {
+            const lastClaim = localStorage.getItem('lastDailyClaim');
+            const now = Date.now();
+
+            if (lastClaim && now - lastClaim < 86400000) {
+                alert("You must wait 24 hours between claims!");
+                return;
+            }
+
+            gems += 30;
+            localStorage.setItem('lastDailyClaim', now);
+            updateUI();
+            alert("Claimed 30💎 Daily Reward!");
+        }
+
+        function checkDailyCooldown() {
+            const lastClaim = localStorage.getItem('lastDailyClaim');
+            const btnDaily = document.getElementById('btn-daily');
+            if (lastClaim) {
+                const diff = Date.now() - parseInt(lastClaim);
+                if (diff < 86400000) {
+                    btnDaily.classList.add('btn-disabled');
+                    const hoursLeft = Math.ceil((86400000 - diff) / 3600000);
+                    document.getElementById('daily-timer').innerText = `(${hoursLeft}h left)`;
+                    return;
+                }
+            }
+            btnDaily.classList.remove('btn-disabled');
+            document.getElementById('daily-timer').innerText = "";
+        }
+
+        // Watch Ads Logic (20s Timer)
+        function watchAd() {
+            playSound(soundClick);
+            alert("Playing 20-second Video Ad...");
+            setTimeout(() => {
+                gems += 20;
+                updateUI();
+                alert("Ad Completed! Earned 20💎");
+            }, 20000);
+        }
+
+        // Profile Modal & Username validation
+        function openProfileModal() { document.getElementById('profile-modal').style.display = 'flex'; }
+        function saveUsername() {
+            const name = document.getElementById('username-input').value.trim();
+            if (!name) return;
+            if (existingUsernames.includes(name)) {
+                alert("Username already taken! Choose another.");
+                return;
+            }
+            document.getElementById('user-name').innerText = name;
+            existingUsernames.push(name);
+            document.getElementById('profile-modal').style.display = 'none';
+        }
+
+        // Social Login Integrations
+        function loginGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            firebase.auth().signInWithPopup(provider).then((res) => {
+                document.getElementById('user-name').innerText = res.user.displayName;
+                document.getElementById('avatar-img').src = res.user.photoURL;
+                alert("Google Login Successful!");
+            }).catch(e => alert(e.message));
+        }
+
+        function loginFB() {
+            const provider = new firebase.auth.FacebookAuthProvider();
+            firebase.auth().signInWithPopup(provider).then((res) => {
+                document.getElementById('user-name').innerText = res.user.displayName;
+                document.getElementById('avatar-img').src = res.user.photoURL;
+                alert("Facebook Login Successful!");
+            }).catch(e => alert(e.message));
+        }
+
+        // Init App
+        applyLanguage();
+        updateUI();
+    </script>
+</body>
+</html>
