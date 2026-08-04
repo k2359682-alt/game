@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="lo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ocean Fishing Demo v0.1</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,"Noto Sans Lao",sans-serif;background:#071827;color:#eef7ff}
+button{border:0;border-radius:10px;padding:10px 14px;background:#1687c7;color:white;font-weight:700;cursor:pointer}
+button:hover{filter:brightness(1.1)}.app{min-height:100vh;display:flex;flex-direction:column}
+header{padding:14px 18px;background:#0b263b;display:flex;justify-content:space-between;gap:12px;align-items:center;position:sticky;top:0;z-index:5}
+.logo{font-size:20px;font-weight:800}.stats{display:flex;gap:10px;flex-wrap:wrap}.pill{background:#123b56;padding:7px 10px;border-radius:999px}
+main{display:grid;grid-template-columns:240px 1fr 300px;gap:14px;padding:14px;flex:1}
+.panel,.card{background:#0d2639;border:1px solid #1a4560;border-radius:14px;padding:14px}
+nav button{display:block;width:100%;margin:7px 0;text-align:left;background:#102f45}
+nav button.active{background:#1687c7}
+h2,h3{margin-top:0}.ocean{min-height:440px;border-radius:18px;background:linear-gradient(#087eb0 0 18%,#075477 18% 55%,#063a58 55%);position:relative;overflow:hidden}
+.wave{position:absolute;top:14%;left:0;width:100%;height:18px;background:rgba(255,255,255,.16)}
+.player{position:absolute;bottom:22%;left:50%;transform:translateX(-50%);font-size:48px}
+.boat{position:absolute;bottom:16%;left:50%;transform:translateX(-50%);font-size:70px}
+.cast{position:absolute;bottom:10%;left:50%;transform:translateX(-50%);background:#f5b642;color:#14202b}
+.status{position:absolute;top:15px;left:15px;right:15px;background:rgba(0,0,0,.28);padding:12px;border-radius:12px}
+.bar{height:14px;background:#12394e;border-radius:99px;overflow:hidden}.bar>i{display:block;height:100%;width:35%;background:#31b7ff}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.item{background:#102f45;border-radius:12px;padding:12px}.common{border-left:5px solid #bbb}.rare{border-left:5px solid #39b54a}.very{border-left:5px solid #278cff}.epic{border-left:5px solid #a95cff}.legend{border-left:5px solid #ffd447}.mythic{border-left:5px solid #ff4848}
+.muted{color:#9db7c9}.small{font-size:13px}.hidden{display:none}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:20;padding:15px}
+.modal.show{display:flex}.modalbox{max-width:620px;width:100%;max-height:90vh;overflow:auto;background:#0d2639;border:1px solid #28627f;border-radius:16px;padding:18px}
+table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #1c4359;text-align:left}
+@media(max-width:900px){main{grid-template-columns:1fr}.left,.right{order:2}.center{order:1}header{flex-wrap:wrap}}
+
+.fishimg,.rodimg{width:86px;height:86px;display:block;margin:4px auto 8px}
+.catchbox{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,88%);background:rgba(4,20,32,.92);border:1px solid #4d89a7;border-radius:16px;padding:16px;text-align:center;display:none;z-index:3}
+.catchbox.show{display:block}.timing{height:24px;background:#173d50;border-radius:99px;position:relative;overflow:hidden;margin:14px 0}
+.timing .good{position:absolute;left:42%;width:16%;height:100%;background:#37c96b}
+.timing .cursor{position:absolute;top:0;left:0;width:5px;height:100%;background:#fff;box-shadow:0 0 8px #fff}
+.bitebtn{font-size:18px;padding:12px 22px;background:#f2ad36;color:#14202b}
+.fishcard{text-align:center}
+
+/* Fishing reaction mini-game */
+.bf-timing{
+  height:34px;
+  margin:16px auto 10px;
+  max-width:440px;
+  background:#07151e;
+  border:2px solid #52778b;
+  border-radius:8px;
+  box-shadow:inset 0 0 0 2px #102a38, 0 4px 14px rgba(0,0,0,.35);
+  position:relative;
+}
+.bf-target{
+  position:absolute;
+  left:42%;
+  width:16%;
+  top:3px;
+  bottom:3px;
+  border-radius:4px;
+  background:#40d477;
+  box-shadow:0 0 12px rgba(64,212,119,.45);
+}
+.bf-cursor{
+  width:7px!important;
+  top:-5px!important;
+  height:44px!important;
+  border-radius:4px;
+  background:#f7fbff!important;
+  box-shadow:0 0 10px rgba(255,255,255,.9);
+  z-index:2;
+}
+.catchbox{
+  border:2px solid #52778b;
+  box-shadow:0 12px 35px rgba(0,0,0,.45);
+}
+
+.mission-card{
+  padding:12px;border:1px solid #294b5e;border-radius:12px;background:#0b1d29
+}
+.mission-head{display:flex;justify-content:space-between;gap:8px}
+.progress{height:9px;background:#142f3d;border-radius:99px;overflow:hidden;margin:8px 0}
+.progress i{display:block;height:100%;background:#40d477}
+.sell-card{text-align:center}
+.sell-card button{width:100%;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo">🎣 Ocean Fishing — DEMO v0.1</div>
+  <div class="stats">
+    <span class="pill">👤 <b id="playerName">Kong</b></span>
+    <span class="pill">⭐ LV <b id="lv">1</b></span>
+    <span class="pill">💰 <b id="money">250</b></span>
+    <span class="pill">✨ EXP <b id="exp">0</b></span>
+  </div>
+</header>
+
+<main>
+<section class="panel left">
+  <h3>🗺️ ເມນູ</h3>
+  <nav>
+    <button class="active" onclick="show('fish')">🎣 ຕົກປາ</button>
+    <button onclick="show('maps')">🌊 Maps</button>
+    <button onclick="show('shop')">🛒 ຮ້ານຄ້າ</button>
+    <button onclick="show('bag')">
+<div class="panel shop-sell" style="margin-top:12px">
+  <h2>🐟 ຮັບຊື້ປາ</h2>
+  <div class="small muted">ເລືອກປາຈາກກະເປົ໋າເພື່ອຂາຍ ຫຼື ຂາຍປາທັງໝົດ</div>
+  <div style="margin:10px 0">
+    <button onclick="sellAllFish()">💰 ຂາຍປາທັງໝົດ</button>
+  </div>
+  <div id="sellFishList" class="grid"></div>
+</div>
+🎒 ກະເປົາ</button>
+    <button onclick="show('book')">📖 ປຶ້ມບັນທຶກ</button>
+    <button onclick="show('rank')">🏆 Ranking</button>
+    <button onclick="show('mission')">📜 ພາລະກິດ</button>
+    <button onclick="show('settings')">⚙️ Settings</button>
+  </nav>
+  <hr>
+  <div class="small muted">Save ອັດຕະໂນມັດໃນ Browser (Demo)</div>
+</section>
+
+<section class="center">
+  <div id="fish" class="page">
+    <div class="ocean">
+      <div class="wave"></div>
+      <div class="status">
+        🌊 <b id="mapName">North Pacific Ocean</b><br>
+        ☀️ <span id="weather">ກາງວັນ</span> · 🎣 <span id="rodName">Common 1</span> · 🪱 <span id="bait">0</span>
+        <div class="bar" style="margin-top:8px"><i id="castBar"></i></div>
+        <div class="small" id="fishStatus">ພ້ອມຕົກປາ</div>
+      </div>
+      <div class="boat">🚤</div><div class="player">🧑</div>
+      <div id="catchBox" class="catchbox">
+        <div id="biteText">🐟 ປາກຳລັງກິນເຫຍື່ອ!</div>
+        <div class="timing bf-timing">
+          <span class="bf-target"></span>
+          <span id="cursor" class="cursor bf-cursor"></span>
+        </div>
+        <div class="small muted">ກົດຕອນຕົວຊີ້ສີຂາວຢູ່ໃນເຂດເປົ້າໝາຍ</div>
+        <button class="bitebtn" onclick="hookFish()">🎣 ກົດ!</button>
+      </div>
+      <button id="castBtn" class="cast" onclick="cast()">🎣 ແກວ່ງເບັດ</button>
+    </div>
+    
+<div class="panel" style="margin-top:12px">
+  <h2>📜 ພາລະກິດປະຈຳວັນ</h2>
+  <div id="missionList" class="grid"></div>
+</div>
+<div class="grid" style="margin-top:12px">
+      <div class="card"><h3>⚖️ ຄວາມຈຸຄັນ</h3><b id="rodCap">5 kg</b><div class="small muted">Common 1</div></div>
+      <div class="card"><h3>🍀 Luck</h3><b id="luck">0%</b><div class="small muted">Item ເພີ່ມໂຊກ</div></div>
+      <div class="card"><h3>✨ EXP Boost</h3><b id="boost">×1</b><div class="small muted" id="boostTime">ບໍ່ມີ</div></div>
+      <div class="card"><h3>🌊 Map Multiplier</h3><b id="mapMult">×1</b><div class="small muted">Money + EXP</div></div>
+    </div>
+  </div>
+
+  <div id="maps" class="page hidden"><div class="card"><h2>🌊 7 ມະຫາສະໝຸດ</h2><div id="mapList" class="grid"></div></div></div>
+
+  <div id="shop" class="page hidden"><div class="card"><h2>🛒 ຮ້ານຄ້າ</h2>
+    <div class="grid">
+      <div class="item fishcard"><div id="rodShopImg"></div><h3>🎣 Common 1</h3><p>ຮັບໄດ້ສູງສຸດ 5kg</p><b>200 💰</b><br><button onclick="buyRod(1,200,5,'Common 1')">ຊື້</button></div>
+      <div class="item"><h3>🪱 Bait Common</h3><p>+0% Luck</p><b>5 💰</b><br><button onclick="buyBait(5)">ຊື້ 1</button></div>
+      <div class="item"><h3>🍀 Luck Item</h3><p>+5% Luck / 10 ນາທີ</p><b>100 💰</b><br><button onclick="useLuck()">ຊື້+ໃຊ້</button></div>
+      <div class="item"><h3>✨ EXP ×2</h3><p>1 ອັນ = 1 ນາທີ</p><b>150 💰</b><br><button onclick="buyBoost()">ຊື້+ໃຊ້</button></div>
+      <div class="item"><h3>🌧️ ປ່ຽນອາກາດ</h3><p>ເຮັດໃຫ້ຝົນ 5 ນາທີ</p><b>200 💰</b><br><button onclick="rain()">ຊື້</button></div>
+    </div>
+  </div></div>
+
+  <div id="bag" class="page hidden"><div class="card"><h2>🎒 Inventory <span class="muted">(200 Slots)</span></h2><div id="bagList" class="grid"></div></div></div>
+
+  <div id="book" class="page hidden"><div class="card"><h2>📖 Fish Codex</h2><p class="muted">ແຍກຕາມ Map · ບັນທຶກຈຳນວນ + ນ້ຳໜັກສູງສຸດ</p><div id="bookList"></div></div></div>
+
+  <div id="rank" class="page hidden"><div class="card"><h2>🏆 ອັນດັບປາໜັກສຸດ</h2><table><tr><th>#</th><th>ຜູ້ຫຼິ້ນ</th><th>ປາ</th><th>kg</th><th>ລາງວັນ</th></tr>
+  <tr><td>1</td><td>Kong</td><td>Blue Marlin</td><td>102.6</td><td>500</td></tr><tr><td>2</td><td>Player2</td><td>Tuna</td><td>98.1</td><td>400</td></tr><tr><td>3</td><td>Player3</td><td>Snapper</td><td>87.4</td><td>300</td></tr></table></div></div>
+
+  <div id="mission" class="page hidden"><div class="card"><h2>📜 Daily Mission</h2><div class="grid">
+    <div class="item">🎣 ຕົກປາ 10 ຄັ້ງ<br><b>+100 💰</b></div><div class="item">🐟 ຕົກປາ 15 ໂຕ<br><b>+150 💰</b></div><div class="item">⚖️ ຕົກປາຕາມນ້ຳໜັກ<br><b>+200 💰</b></div></div></div></div>
+
+  <div id="settings" class="page hidden"><div class="card"><h2>⚙️ Settings</h2>
+    <button onclick="toggleSound()">🔊 Sound: <span id="sound">ON</span></button>
+    <button onclick="toggleLang()">🌐 Language: <span id="lang">Lao</span></button>
+    <button onclick="resetDemo()">🔄 Reset Demo</button>
+  </div></div>
+</section>
+
+<section class="panel right">
+  <h3>🐟 ປາທີ່ຕົກໄດ້ຫຼ້າສຸດ</h3>
+  <div id="lastCatch" class="item">ຍັງບໍ່ມີ</div>
+  <hr>
+  <h3>📊 ສະຖິຕິ</h3>
+  <div class="small">Fish discovered: <b id="discovered">0</b></div>
+  <div class="small">Total catches: <b id="catches">0</b></div>
+  <div class="small">Best weight: <b id="best">0 kg</b></div>
+  <hr>
+  <h3>🧪 Demo Status</h3>
+  <div class="small">Login/Register: ⚠️ UI only</div>
+  <div class="small">Save/Load: ✅ localStorage</div>
+  <div class="small">Anti-cheat: ⚠️ Frontend demo only</div>
+  <div class="small">1,155 real species: ⚠️ sample data</div>
+</section>
+</main>
+</div>
+
+<div id="modal" class="modal"><div class="modalbox"><h2 id="modalTitle"></h2><div id="modalBody"></div><button onclick="closeModal()">ປິດ</button></div></div>
+
+<script>
+const maps=[
+ ["North Pacific Ocean",1,1],["South Pacific Ocean",15,1.15],["North Atlantic Ocean",30,1.2],
+ ["South Atlantic Ocean",45,1.3],["Indian Ocean",60,1.4],["Southern Ocean",75,1.5],["Arctic Ocean",90,2]
+];
+const fish=[
+ {name:"Blue Marlin",la:"ປາມາລິນສີຟ້າ",rar:"Very Rare",min:.2,max:100,price:90,exp:70,map:0},
+ {name:"Yellowfin Tuna",la:"ປາທູນາຄີບເຫຼືອງ",rar:"Rare",min:.2,max:80,price:55,exp:45,map:0},
+ {name:"Pacific Cod",la:"ປາຄອດແປຊີຟິກ",rar:"Common",min:.2,max:20,price:20,exp:20,map:0},
+ {name:"Giant Squid",la:"ໝຶກຍັກ",rar:"Legendary",min:1,max:250,price:165,exp:180,map:0},
+ {name:"Albacore",la:"ປາອັນບາຄໍ",rar:"Rare",min:.2,max:40,price:50,exp:40,map:1},
+ {name:"Swordfish",la:"ປາກະດາບ",rar:"Very Rare",min:.2,max:120,price:95,exp:75,map:1},
+ {name:"Atlantic Cod",la:"ປາຄອດແອັດແລນຕິກ",rar:"Common",min:.2,max:30,price:25,exp:25,map:2},
+ {name:"Atlantic Bluefin Tuna",la:"ປາທູນາຄີບຟ້າ",rar:"Epic",min:1,max:300,price:120,exp:110,map:2},
+ {name:"Patagonian Toothfish",la:"ປາຟັນປາຕາໂກເນຍ",rar:"Epic",min:.5,max:150,price:125,exp:115,map:3},
+ {name:"Antarctic Toothfish",la:"ປາຟັນແອນຕາກຕິກ",rar:"Legendary",min:1,max:200,price:170,exp:190,map:4},
+ {name:"Emperor Penguin",la:"ແພນກວິນຈັກກະພັດ",rar:"Mythic",min:10,max:40,price:250,exp:300,map:4},
+ {name:"Green Sea Turtle",la:"ເຕົ່າທະເລສີຂຽວ",rar:"Very Rare",min:1,max:150,price:100,exp:80,map:5},
+ {name:"Polar Cod",la:"ປາຄອດຂົ້ວໂລກ",rar:"Rare",min:.2,max:20,price:60,exp:50,map:6},
+ {name:"Narwhal",la:"ນາວາວ",rar:"Mythic",min:500,max:1600,price:250,exp:300,map:6}
+];
+
+
+function ensureMissions(){
+  if(!state.missions){
+    state.missions=[
+      {id:"catch10",title:"🎣 ຕົກປາ 10 ຄັນ",type:"catch",goal:10,progress:0,reward:100,done:false},
+      {id:"catch20",title:"🎣 ຕົກປາ 20 ຄັນ",type:"catch",goal:20,progress:0,reward:150,done:false},
+      {id:"sell5",title:"🐟 ຂາຍປາ 5 ໂຕ",type:"sell",goal:5,progress:0,reward:120,done:false}
+    ];
+  }
+  if(!state.missionDay) state.missionDay=new Date().toDateString();
+  if(state.missionDay!==new Date().toDateString()){
+    state.missionDay=new Date().toDateString();
+    state.missions.forEach(m=>{m.progress=0;m.done=false});
+  }
+}
+ensureMissions();
+
+function updateMission(type, amount=1){
+  ensureMissions();
+  state.missions.forEach(m=>{
+    if(m.done || m.type!==type) return;
+    m.progress=Math.min(m.goal,m.progress+amount);
+    if(m.progress>=m.goal){
+      m.done=true;
+      state.money+=m.reward;
+      state.completedMissions=(state.completedMissions||0)+1;
+    }
+  });
+}
+
+function renderMissions(){
+  ensureMissions();
+  const el=document.getElementById("missionList");
+  if(!el)return;
+  el.innerHTML=state.missions.map(m=>{
+    const pct=Math.min(100,Math.floor(m.progress/m.goal*100));
+    return `<div class="mission-card">
+      <div class="mission-head"><b>${m.title}</b><span>${m.progress}/${m.goal}</span></div>
+      <div class="progress"><i style="width:${pct}%"></i></div>
+      <div class="small">${m.done ? "✅ ເຮັດສຳເລັດ · ໄດ້ "+m.reward+" ເງິນ" : "🎁 ລາງວັນ "+m.reward+" ເງິນ"}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderSellFish(){
+  const el=document.getElementById("sellFishList");
+  if(!el)return;
+  if(!state.bag.length){
+    el.innerHTML='<div class="small muted">ກະເປົ໋າບໍ່ມີປາ ໃຫ້ໄປຕົກປາກ່ອນ.</div>';
+    return;
+  }
+  el.innerHTML=state.bag.map((x,i)=>{
+    const base=fish.find(f=>f.name===x.name);
+    const value=Math.max(1,Math.floor((base?.price||10)*(x.weight/Math.max(1,base?.max||x.weight))));
+    return `<div class="item sell-card">
+      ${fishSVG(x.rar==="Legendary"||x.rar==="Mythic"?"gold":"blue")}
+      <b>${x.name}</b><br>
+      ${rarIcon(x.rar)} ${x.rar} · ⚖️ ${x.weight.toFixed(1)}kg
+      <br>💰 ${value}
+      <button onclick="sellFish(${i})">🐟 ຂາຍ</button>
+    </div>`;
+  }).join("");
+}
+
+function sellFish(index){
+  const x=state.bag[index];
+  if(!x)return;
+  const base=fish.find(f=>f.name===x.name);
+  const value=Math.max(1,Math.floor((base?.price||10)*(x.weight/Math.max(1,base?.max||x.weight))));
+  state.money+=value;
+  state.bag.splice(index,1);
+  updateMission("sell",1);
+  save();render();renderSellFish();renderMissions();
+}
+
+function sellAllFish(){
+  if(!state.bag.length)return;
+  let total=0;
+  state.bag.forEach(x=>{
+    const base=fish.find(f=>f.name===x.name);
+    total+=Math.max(1,Math.floor((base?.price||10)*(x.weight/Math.max(1,base?.max||x.weight))));
+  });
+  const count=state.bag.length;
+  state.money+=total;
+  state.bag=[];
+  updateMission("sell",count);
+  save();render();renderSellFish();renderMissions();
+}
+
+function fishSVG(type="blue", size=86){
+ const c=type==="gold"?"#ffd447":type==="red"?"#ff5a5a":type==="green"?"#45d483":"#35a9e8";
+ return `<svg class="fishimg" viewBox="0 0 120 80" width="${size}" height="${size}" aria-label="fish">
+ <ellipse cx="60" cy="40" rx="34" ry="18" fill="${c}"/>
+ <polygon points="27,40 7,24 7,56" fill="${c}"/>
+ <polygon points="62,23 74,8 80,28" fill="${c}"/>
+ <circle cx="78" cy="35" r="3.5" fill="#071827"/>
+ <path d="M52 44 Q62 50 72 44" fill="none" stroke="#071827" stroke-width="2"/>
+ </svg>`;
+}
+function rodSVG(){
+ return `<svg class="rodimg" viewBox="0 0 120 90" aria-label="fishing rod">
+ <path d="M18 72 Q55 30 104 16" stroke="#d99b45" stroke-width="6" fill="none"/>
+ <path d="M20 70 L8 82" stroke="#17384c" stroke-width="12" stroke-linecap="round"/>
+ <path d="M102 17 Q112 13 111 25" stroke="#ddd" stroke-width="2" fill="none"/>
+ <circle cx="108" cy="29" r="5" fill="#cfd8dc"/><path d="M108 29 L108 67" stroke="#ddd" stroke-width="1.5"/>
+ <path d="M108 67 q7 8 0 13" stroke="#ddd" stroke-width="1.5" fill="none"/>
+ </svg>`;
+}
+let castTimer=null, biteTimer=null, cursorTimer=null, cursorPos=0, cursorDir=1, biteReady=false;
+
+let state=JSON.parse(localStorage.getItem("fishingDemo")||"null")||{
+ money:250,exp:0,lv:1,rod:{name:"Common 1",cap:5,rar:"Common"},bait:0,luck:0,
+ boostCount:0,boostUntil:0,map:0,weather:"ກາງວັນ",sound:true,lang:"Lao",catches:0,
+ discovered:{},best:{},bag:[]
+};
+function save(){localStorage.setItem("fishingDemo",JSON.stringify(state));renderMissions();renderSellFish();render()}
+function render(){
+ ensureMissions();
+ document.getElementById("rodShopImg").innerHTML=rodSVG();
+ document.getElementById("money").textContent=Math.floor(state.money);
+ document.getElementById("exp").textContent=Math.floor(state.exp);
+ document.getElementById("lv").textContent=state.lv;
+ document.getElementById("rodName").textContent=state.rod.name;
+ document.getElementById("rodCap").textContent=state.rod.cap+" kg";
+ document.getElementById("bait").textContent=state.bait;
+ document.getElementById("luck").textContent=state.luck+"%";
+ document.getElementById("mapName").textContent=maps[state.map][0];
+ document.getElementById("mapMult").textContent="×"+maps[state.map][2];
+ let active=state.boostUntil>Date.now();
+ document.getElementById("boost").textContent=active?"×"+Math.min(8,1+state.boostCount):"×1";
+ document.getElementById("boostTime").textContent=active?Math.ceil((state.boostUntil-Date.now())/1000)+" sec":"ບໍ່ມີ";
+ document.getElementById("weather").textContent=state.weather;
+ document.getElementById("catches").textContent=state.catches;
+ document.getElementById("discovered").textContent=Object.keys(state.discovered).length;
+ let best=Math.max(0,...Object.values(state.best));
+ document.getElementById("best").textContent=best.toFixed(1)+" kg";
+ renderMaps();renderBook();renderBag();
+}
+function show(id){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));document.getElementById(id).classList.remove("hidden");document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));event?.target?.classList.add("active")}
+function buyRod(n,c,cap,name){if(state.money<c)return alert("ເງິນບໍ່ພໍ");state.money-=c;state.rod={name,cap};save()}
+function buyBait(c){if(state.money<c)return alert("ເງິນບໍ່ພໍ");state.money-=c;state.bait++;save()}
+function useLuck(){if(state.money<100)return alert("ເງິນບໍ່ພໍ");state.money-=100;state.luck+=5;setTimeout(()=>{state.luck=Math.max(0,state.luck-5);save()},600000);save()}
+function buyBoost(){if(state.money<150)return alert("ເງິນບໍ່ພໍ");state.money-=150;state.boostCount++;state.boostUntil=Math.max(Date.now(),state.boostUntil)+60000;save()}
+function rain(){if(state.money<200)return alert("ເງິນບໍ່ພໍ");state.money-=200;state.weather="🌧️ ຝົນ";save();setTimeout(()=>{state.weather="☀️ ກາງວັນ";save()},300000)}
+
+function cast(){
+ if(biteReady || castTimer) return;
+ if(state.bait<=0)return alert("ເຫຍື່ອໝົດ — ໄປຮ້ານຄ້າກ່ອນ");
+ state.bait--;
+ document.getElementById("castBtn").disabled=true;
+ document.getElementById("fishStatus").textContent="🎣 ເຫຍື່ອລົງນ້ຳ... ລໍຖ້າປາ";
+ let bar=document.getElementById("castBar"),t=0;
+ castTimer=setInterval(()=>{
+   t+=4; bar.style.width=t+"%";
+   if(t>=100){
+     clearInterval(castTimer);castTimer=null;bar.style.width="0";
+     document.getElementById("fishStatus").textContent="👀 ລໍຖ້າປາກິນເຫຍື່ອ...";
+     const delay=900+Math.random()*2300;
+     biteTimer=setTimeout(showBite,delay);
+   }
+ },80);
+}
+function showBite(){
+ biteTimer=null;biteReady=true;
+ document.getElementById("catchBox").classList.add("show");
+ document.getElementById("castBtn").disabled=true;
+ document.getElementById("fishStatus").textContent="‼️ ປາກິນເຫຍື່ອ! ກົດໃຫ້ທັນ!";
+ const target=document.querySelector(".bf-target");
+ const targetLeft=20+Math.random()*60;
+ target.style.left=targetLeft+"%";
+ cursorPos=0;cursorDir=1;
+ const cursor=document.getElementById("cursor");
+ cursorTimer=setInterval(()=>{
+   cursorPos+=cursorDir*1.75;
+   if(cursorPos>=98){cursorPos=98;cursorDir=-1}
+   if(cursorPos<=0){cursorPos=0;cursorDir=1}
+   cursor.style.left=cursorPos+"%";
+ },20);
+ setTimeout(()=>{if(biteReady)missFish()},5000);
+}
+function hookFish(){
+ if(!biteReady)return;
+ const pos=cursorPos;
+ const target=document.querySelector(".bf-target");
+ const left=parseFloat(target.style.left)||42;
+ const right=left+16;
+ clearInterval(cursorTimer);cursorTimer=null;biteReady=false;
+ document.getElementById("catchBox").classList.remove("show");
+ const center=(left+right)/2;
+ const distance=Math.abs(pos-center);
+ if(pos>=left && pos<=right) catchFish(distance<=5 ? 1.2 : 1.05);
+ else if(distance<=12) catchFish(1.0);
+ else {
+   document.getElementById("fishStatus").textContent="💨 ປາຫຼຸດ! ກົດບໍ່ກົງເຂດ!";
+   document.getElementById("castBtn").disabled=false;render();
+ }
+}
+function missFish(){
+ if(!biteReady)return;
+ clearInterval(cursorTimer);cursorTimer=null;biteReady=false;
+ document.getElementById("catchBox").classList.remove("show");
+ document.getElementById("fishStatus").textContent="💨 ປາຫຼຸດເພາະບໍ່ໄດ້ກົດທັນ!";
+ document.getElementById("castBtn").disabled=false;render();
+}
+function catchFish(skillMult=1){
+ let pool=fish.filter(f=>f.map<=state.map && f.min<=state.rod.cap);
+ if(!pool.length){document.getElementById("fishStatus").textContent="❌ ຄັນນີ້ຮັບປາບໍ່ໄດ້";document.getElementById("castBtn").disabled=false;return}
+ // Luck shifts selection toward rarer entries.
+ let weighted=[];
+ pool.forEach(f=>{
+   let w={Common:60,Rare:30,"Very Rare":15,Epic:8,Legendary:4,Mythic:2}[f.rar]||1;
+   w*=1+state.luck/100;
+   for(let i=0;i<Math.ceil(w);i++)weighted.push(f);
+ });
+ let f=weighted[Math.floor(Math.random()*weighted.length)];
+ let cap=Math.min(f.max,state.rod.cap);
+ let weight=f.min+Math.random()*(cap-f.min);
+ weight=Math.max(f.min,weight)*skillMult;
+ weight=Math.min(weight,state.rod.cap);
+ let mapM=maps[state.map][2],boost=state.boostUntil>Date.now()?Math.min(8,1+state.boostCount):1;
+ let weatherM=state.weather.includes("ຝົນ")?1.02:1;
+ let money=Math.floor(f.price*(weight/Math.max(1,f.max))*mapM*boost*weatherM);
+ let exp=Math.floor(f.exp*(weight/Math.max(1,f.max))*mapM*boost);
+ state.money+=Math.max(1,money);state.exp+=Math.max(1,exp);state.catches++;updateMission("catch",1);
+ state.discovered[f.name]=true;state.best[f.name]=Math.max(state.best[f.name]||0,weight);
+ state.bag.push({name:f.name,weight,rar:f.rar});if(state.bag.length>200)state.bag.shift();
+ document.getElementById("lastCatch").innerHTML=`${fishSVG(f.rar==="Legendary"||f.rar==="Mythic"?"gold":"blue")}<b>${f.name}</b> (${f.la})<br>${rarIcon(f.rar)} ${f.rar} · ⚖️ ${weight.toFixed(1)} kg<br>💰 +${Math.max(1,money)} · ⭐ +${Math.max(1,exp)} EXP`;
+ document.getElementById("fishStatus").textContent="🎉 ຕົກໄດ້ "+f.name;
+ document.getElementById("castBtn").disabled=false;
+ checkLevel();save()
+}
+function checkLevel(){let need=50+(state.lv-1)*10;while(state.exp>=need&&state.lv<9999){state.exp-=need;state.lv++;need=50+(state.lv-1)*10}}
+function rarIcon(r){return {Common:"⚪",Rare:"🟢","Very Rare":"🔵",Epic:"🟣",Legendary:"🟡",Mythic:"🔴"}[r]}
+function renderMaps(){document.getElementById("mapList").innerHTML=maps.map((m,i)=>`<div class="item"><h3>${i+1}. ${m[0]}</h3><p>🔓 LV ${m[1]} · 💰 ${i?i*500+500:0}</p><b>×${m[2]} Money + EXP</b><br><button onclick="changeMap(${i})">${i==state.map?"ຢູ່ທີ່ນີ້":"ເລືອກ Map"}</button></div>`).join("")}
+function changeMap(i){if(state.lv<maps[i][1])return alert("LV ຍັງບໍ່ເຖິງ");state.map=i;save()}
+function renderBook(){document.getElementById("bookList").innerHTML=maps.map((m,i)=>{let fs=fish.filter(f=>f.map===i);return `<div class="card" style="margin:8px 0"><h3>🌊 ${m[0]} — ${fs.filter(f=>state.discovered[f.name]).length}/${fs.length}</h3>${fs.map(f=>`<div class="item ${f.rar.toLowerCase().replace(" ","")}"><b>${state.discovered[f.name]?f.name:"🔒 ???"}</b> · ${rarIcon(f.rar)} ${f.rar}<br><span class="small">${state.discovered[f.name]?`Best: ${(state.best[f.name]||0).toFixed(1)} kg`:"ຍັງບໍ່ຄົ້ນພົບ"}</span></div>`).join("")}</div>`}).join("")}
+function renderBag(){document.getElementById("bagList").innerHTML=state.bag.length?state.bag.slice().reverse().map(x=>`<div class="item fishcard">${fishSVG(x.rar==="Legendary"||x.rar==="Mythic"?"gold":"blue")}<b>${x.name}</b><br>${rarIcon(x.rar)} ${x.rar} · ⚖️ ${x.weight.toFixed(1)}kg</div>`).join(""):`<p class="muted">ກະເປົາຍັງວ່າງ</p>`}
+function toggleSound(){state.sound=!state.sound;document.getElementById("sound").textContent=state.sound?"ON":"OFF";save()}
+function toggleLang(){state.lang=state.lang==="Lao"?"English":"Lao";document.getElementById("lang").textContent=state.lang}
+function resetDemo(){if(confirm("Reset demo?")){localStorage.removeItem("fishingDemo");location.reload()}}
+function closeModal(){document.getElementById("modal").classList.remove("show")}
+setInterval(()=>{ if(state.boostUntil>Date.now()) render(); },1000);render();renderMissions();renderSellFish();
+</script>
+</body>
+</html>
