@@ -80,6 +80,41 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px so
 .progress i{display:block;height:100%;background:#40d477}
 .sell-card{text-align:center}
 .sell-card button{width:100%;margin-top:8px}
+
+/* v0.5 layout: menu left, fishing area right */
+.app-layout{
+  display:grid;
+  grid-template-columns:260px minmax(0,1fr);
+  gap:14px;
+  align-items:start;
+}
+.left-menu{
+  position:sticky;
+  top:12px;
+}
+.left-menu .menu-title{
+  font-size:20px;
+  font-weight:800;
+  margin-bottom:10px;
+}
+.left-menu .menu-btn{
+  display:block;
+  width:100%;
+  text-align:left;
+  margin:7px 0;
+  padding:11px 12px;
+  border-radius:10px;
+  background:#0c2533;
+  border:1px solid #294b5e;
+  color:inherit;
+}
+.left-menu .menu-btn:hover{background:#123548}
+.main-game{min-width:0}
+@media(max-width:820px){
+  .app-layout{grid-template-columns:1fr}
+  .left-menu{position:static}
+  .left-menu .menu-btn{display:inline-block;width:auto;margin-right:5px}
+}
 </style>
 </head>
 <body>
@@ -122,7 +157,19 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px so
 
 <section class="center">
   <div id="fish" class="page">
-    <div class="ocean">
+    <div class="app-layout">
+<div class="left-menu">
+  <div class="panel">
+    <div class="menu-title">📋 ເມນູ</div>
+    <button class="menu-btn" onclick="document.getElementById('missionList')?.scrollIntoView({behavior:'smooth'})">📜 ພາລະກິດ</button>
+    <button class="menu-btn" onclick="document.getElementById('sellFishList')?.scrollIntoView({behavior:'smooth'})">🐟 ຂາຍປາ</button>
+    <button class="menu-btn" onclick="document.querySelector('.shop-sell')?.scrollIntoView({behavior:'smooth'})">🛒 ຮ້ານຄ້າ</button>
+    <button class="menu-btn" onclick="document.querySelector('[id*=inventory], .inventory, .bag')?.scrollIntoView({behavior:'smooth'})">🎒 ກະເປົາ</button>
+    <button class="menu-btn" onclick="document.querySelector('.settings, #settings')?.scrollIntoView({behavior:'smooth'})">⚙️ Settings</button>
+    <button class="menu-btn" onclick="document.querySelector('.codex, #codex')?.scrollIntoView({behavior:'smooth'})">📖 Fish Codex</button>
+  </div>
+</div>
+<div class="main-game"><div class="ocean">
       <div class="wave"></div>
       <div class="status">
         🌊 <b id="mapName">North Pacific Ocean</b><br>
@@ -469,5 +516,5 @@ function resetDemo(){if(confirm("Reset demo?")){localStorage.removeItem("fishing
 function closeModal(){document.getElementById("modal").classList.remove("show")}
 setInterval(()=>{ if(state.boostUntil>Date.now()) render(); },1000);render();renderMissions();renderSellFish();
 </script>
-</body>
+</div></div></body>
 </html>
