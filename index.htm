@@ -10,7 +10,7 @@ button{border:0;border-radius:10px;padding:10px 14px;background:#1687c7;color:wh
 button:hover{filter:brightness(1.1)}.app{min-height:100vh;display:flex;flex-direction:column}
 header{padding:14px 18px;background:#0b263b;display:flex;justify-content:space-between;gap:12px;align-items:center;position:sticky;top:0;z-index:5}
 .logo{font-size:20px;font-weight:800}.stats{display:flex;gap:10px;flex-wrap:wrap}.pill{background:#123b56;padding:7px 10px;border-radius:999px}
-main{display:grid;grid-template-columns:240px 1fr 300px;gap:14px;padding:14px;flex:1}
+main{display:grid;grid-template-columns:240px minmax(0,1fr);gap:14px;padding:14px;flex:1}
 .panel,.card{background:#0d2639;border:1px solid #1a4560;border-radius:14px;padding:14px}
 nav button{display:block;width:100%;margin:7px 0;text-align:left;background:#102f45}
 nav button.active{background:#1687c7}
@@ -27,7 +27,8 @@ h2,h3{margin-top:0}.ocean{min-height:440px;border-radius:18px;background:linear-
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:20;padding:15px}
 .modal.show{display:flex}.modalbox{max-width:620px;width:100%;max-height:90vh;overflow:auto;background:#0d2639;border:1px solid #28627f;border-radius:16px;padding:18px}
 table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #1c4359;text-align:left}
-@media(max-width:900px){main{grid-template-columns:1fr}.left,.right{order:2}.center{order:1}header{flex-wrap:wrap}}
+@media(min-width:901px){.right{grid-column:2}.center{grid-column:2}}
+@media(max-width:900px){main{grid-template-columns:1fr}.left,.right,.center{grid-column:1;order:initial}header{flex-wrap:wrap}}
 
 .fishimg,.rodimg{width:86px;height:86px;display:block;margin:4px auto 8px}
 .catchbox{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,88%);background:rgba(4,20,32,.92);border:1px solid #4d89a7;border-radius:16px;padding:16px;text-align:center;display:none;z-index:3}
@@ -81,43 +82,51 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px so
 .sell-card{text-align:center}
 .sell-card button{width:100%;margin-top:8px}
 
-/* v0.5 layout: menu left, fishing area right */
-.app-layout{
-  display:grid;
-  grid-template-columns:260px minmax(0,1fr);
-  gap:14px;
-  align-items:start;
+/* ===== Ocean Fishing v1.0 — production-style game UI ===== */
+:root{
+  --bg:#07131d;--panel:#0c1f2d;--panel2:#102b3b;--line:#24485c;
+  --text:#eef8ff;--muted:#91aebe;--accent:#36d399;--gold:#ffd166;
 }
-.left-menu{
-  position:sticky;
-  top:12px;
-}
-.left-menu .menu-title{
-  font-size:20px;
-  font-weight:800;
-  margin-bottom:10px;
-}
-.left-menu .menu-btn{
-  display:block;
-  width:100%;
-  text-align:left;
-  margin:7px 0;
-  padding:11px 12px;
-  border-radius:10px;
-  background:#0c2533;
-  border:1px solid #294b5e;
-  color:inherit;
-}
-.left-menu .menu-btn:hover{background:#123548}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 70% 10%,#12394b 0,#07131d 45%,#040b11 100%);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+button{cursor:pointer;transition:.15s transform,.15s filter}
+button:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.app-layout{max-width:1500px;margin:auto;padding:14px}
+.left-menu{position:sticky;top:12px}
+.left-menu .panel{box-shadow:0 12px 35px #0006}
 .main-game{min-width:0}
-@media(max-width:820px){
-  .app-layout{grid-template-columns:1fr}
+.game-hud{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.hud-card{flex:1;min-width:135px;background:#0b1d29dd;border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.hud-card b{display:block;font-size:18px}
+.hud-card span{font-size:12px;color:var(--muted)}
+.fishing-stage{position:relative;min-height:520px;border:1px solid #2b6078;border-radius:18px;overflow:hidden;background:linear-gradient(#0c5269,#07334b 42%,#061c2c 43%,#04121d)}
+.fishing-stage:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(170deg,#ffffff0a 0 2px,transparent 2px 18px);pointer-events:none}
+.fishing-stage .stage-content{position:relative;z-index:1;padding:18px}
+.fishing-stage h1{margin:4px 0 2px}
+.fishing-stage .location{color:#bdefff}
+.cast-btn{font-size:18px!important;padding:13px 22px!important;border-radius:12px!important;background:#19a86b!important}
+.fishing-status{margin-top:12px;padding:12px;border-radius:12px;background:#03131dcc;border:1px solid #2d6075}
+.mini-game{margin:18px auto 0;max-width:760px}
+.mini-game .bar{height:34px;border-radius:999px;background:#07151e;border:2px solid #4d7383;position:relative;overflow:hidden}
+.mini-game .target{position:absolute;top:2px;bottom:2px;background:#2bd67f99;border:2px solid #6fffb1;border-radius:999px}
+.mini-game .cursor{position:absolute;top:-2px;bottom:-2px;width:5px;background:#fff;box-shadow:0 0 12px #fff}
+.mini-game .tip{text-align:center;margin:8px;color:#d9f6ff}
+@media(max-width:900px){
+  .app-layout{grid-template-columns:1fr!important}
   .left-menu{position:static}
-  .left-menu .menu-btn{display:inline-block;width:auto;margin-right:5px}
+  .fishing-stage{min-height:470px}
 }
+
 </style>
 </head>
 <body>
+<div class="game-hud">
+  <div class="hud-card">💰 <b id="hudMoney">0</b><span>ເງິນ</span></div>
+  <div class="hud-card">⭐ <b id="hudLevel">LV 1</b><span>ລະດັບ</span></div>
+  <div class="hud-card">🎣 <b id="hudCatches">0</b><span>ຕົກປາ</span></div>
+  <div class="hud-card">🎒 <b id="hudBag">0 / 200</b><span>ກະເປົ໋າ</span></div>
+</div>
+
 <div class="app">
 <header>
   <div class="logo">🎣 Ocean Fishing — DEMO v0.1</div>
@@ -137,14 +146,6 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px so
     <button onclick="show('maps')">🌊 Maps</button>
     <button onclick="show('shop')">🛒 ຮ້ານຄ້າ</button>
     <button onclick="show('bag')">
-<div class="panel shop-sell" style="margin-top:12px">
-  <h2>🐟 ຮັບຊື້ປາ</h2>
-  <div class="small muted">ເລືອກປາຈາກກະເປົ໋າເພື່ອຂາຍ ຫຼື ຂາຍປາທັງໝົດ</div>
-  <div style="margin:10px 0">
-    <button onclick="sellAllFish()">💰 ຂາຍປາທັງໝົດ</button>
-  </div>
-  <div id="sellFishList" class="grid"></div>
-</div>
 🎒 ກະເປົາ</button>
     <button onclick="show('book')">📖 ປຶ້ມບັນທຶກ</button>
     <button onclick="show('rank')">🏆 Ranking</button>
@@ -157,19 +158,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px so
 
 <section class="center">
   <div id="fish" class="page">
-    <div class="app-layout">
-<div class="left-menu">
-  <div class="panel">
-    <div class="menu-title">📋 ເມນູ</div>
-    <button class="menu-btn" onclick="document.getElementById('missionList')?.scrollIntoView({behavior:'smooth'})">📜 ພາລະກິດ</button>
-    <button class="menu-btn" onclick="document.getElementById('sellFishList')?.scrollIntoView({behavior:'smooth'})">🐟 ຂາຍປາ</button>
-    <button class="menu-btn" onclick="document.querySelector('.shop-sell')?.scrollIntoView({behavior:'smooth'})">🛒 ຮ້ານຄ້າ</button>
-    <button class="menu-btn" onclick="document.querySelector('[id*=inventory], .inventory, .bag')?.scrollIntoView({behavior:'smooth'})">🎒 ກະເປົາ</button>
-    <button class="menu-btn" onclick="document.querySelector('.settings, #settings')?.scrollIntoView({behavior:'smooth'})">⚙️ Settings</button>
-    <button class="menu-btn" onclick="document.querySelector('.codex, #codex')?.scrollIntoView({behavior:'smooth'})">📖 Fish Codex</button>
-  </div>
-</div>
-<div class="main-game"><div class="ocean">
+    <div class="ocean">
       <div class="wave"></div>
       <div class="status">
         🌊 <b id="mapName">North Pacific Ocean</b><br>
@@ -212,7 +201,15 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px so
       <div class="item"><h3>✨ EXP ×2</h3><p>1 ອັນ = 1 ນາທີ</p><b>150 💰</b><br><button onclick="buyBoost()">ຊື້+ໃຊ້</button></div>
       <div class="item"><h3>🌧️ ປ່ຽນອາກາດ</h3><p>ເຮັດໃຫ້ຝົນ 5 ນາທີ</p><b>200 💰</b><br><button onclick="rain()">ຊື້</button></div>
     </div>
-  </div></div>
+  </div>
+  <div class="panel shop-sell" style="margin-top:12px">
+  <h2>🐟 ຮັບຊື້ປາ</h2>
+  <div class="small muted">ເລືອກປາຈາກກະເປົ໋າເພື່ອຂາຍ ຫຼື ຂາຍປາທັງໝົດ</div>
+  <div style="margin:10px 0">
+    <button onclick="sellAllFish()">💰 ຂາຍປາທັງໝົດ</button>
+  </div>
+  <div id="sellFishList" class="grid"></div>
+</div>
 
   <div id="bag" class="page hidden"><div class="card"><h2>🎒 Inventory <span class="muted">(200 Slots)</span></h2><div id="bagList" class="grid"></div></div></div>
 
@@ -516,5 +513,26 @@ function resetDemo(){if(confirm("Reset demo?")){localStorage.removeItem("fishing
 function closeModal(){document.getElementById("modal").classList.remove("show")}
 setInterval(()=>{ if(state.boostUntil>Date.now()) render(); },1000);render();renderMissions();renderSellFish();
 </script>
-</div></div></body>
+
+<script>
+(function(){
+  function syncGameHud(){
+    try{
+      if(typeof state==="undefined") return;
+      const money=document.getElementById("hudMoney");
+      const level=document.getElementById("hudLevel");
+      const catches=document.getElementById("hudCatches");
+      const bag=document.getElementById("hudBag");
+      if(money) money.textContent=Number(state.money||0).toLocaleString();
+      if(level) level.textContent="LV "+(state.level||1);
+      if(catches) catches.textContent=Number(state.catches||0).toLocaleString();
+      if(bag) bag.textContent=(state.bag?.length||0)+" / 200";
+    }catch(e){}
+  }
+  setInterval(syncGameHud,500);
+  window.addEventListener("load",syncGameHud);
+})();
+</script>
+
+</body>
 </html>
